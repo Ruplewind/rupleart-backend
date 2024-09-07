@@ -25,11 +25,8 @@ app.use('/', UsersController);
 let ProductsController = require('./controllers/ProductsController');
 app.use('/', ProductsController);
 
-let OrdersController = require('./controllers/OrdersController');
-app.use('/', OrdersController);
-
-let VideosController = require('./controllers/VideosController');
-app.use('/', VideosController);
+// let OrdersController = require('./controllers/OrdersController');
+// app.use('/', OrdersController);
 
 let LocationsController = require('./controllers/LocationsController');
 app.use('/', LocationsController)

@@ -1,16 +1,14 @@
 const mongoose = require('mongoose');
 
 let productsSchema = new mongoose.Schema({
-    image: String,
+    images: [String],
     productName: String,
+    description: String,
+    ownedBy: String,
     type: String,
     price: Number,
-    xSmall: Boolean,
-    small: Boolean,
-    medium: Boolean,
-    large: Boolean,
-    xLarge: Boolean,
-    xXLarge: Boolean,
+    size: String,
+    approvalStatus: String,
     availability: Boolean
 })
 
