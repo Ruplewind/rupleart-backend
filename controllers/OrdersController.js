@@ -1,20 +1,14 @@
 let express = require('express');
-
 let app = express.Router();
-
 let mongoose = require('mongoose');
-
 const bodyParser = require('body-parser');
-
 const OrdersModel = require('../models/OrdersModel');
 const ProductsModel = require('../models/ProductsModel');
-
 const urlEncoded = bodyParser.urlencoded({extended: false});
-
 const unirest = require('unirest');
-const VideosModel = require('../models/VideosModel');
 const LocationsModel = require('../models/LocationsModel');
 const verifyToken = require('../middleware/authMiddleware');
+const UsersModel = require('../models/UsersModel');
 
 function accessToken(req, res, next){
 
@@ -87,10 +81,7 @@ app.post('/Checkout', urlEncoded, accessToken, function(req, res){
 
     let received = {
         OrderTrackingId : "",
-        first_name: req.body.firstname,
-        second_name: req.body.secondname,
-        email : req.body.email,
-        phone_number : req.body.phoneNumber, 
+        user_id: req.body.user_id,
         items : req.body.products,
         completion_status: "pending",
         deliveryLocation : req.body.location,
@@ -104,35 +95,19 @@ app.post('/Checkout', urlEncoded, accessToken, function(req, res){
     let TotalPrice = 0;
     let location =  received.deliveryLocation;
 
-    // Check if all items are videos    
-    let allItemsAreVideos = received.items.every(item => item.title);
-
-    if (allItemsAreVideos) {
-        received.deliveryLocation = "NA";
-        let delivery_cost = 0;
-
+    LocationsModel.findById(location)
+    .then(locationData => {
+        let delivery_cost = locationData.price;
         let promises = received.items.map( item => {
-            if(item.title){
-                return VideosModel.findOne({ _id : item._id })
-                .then(response => {
-                    if(item.quantity < 1){
-                        TotalPrice = TotalPrice + ( response.price * 1);
-                    }else{
-                        TotalPrice = TotalPrice + ( response.price * item.quantity);
-                    }
-                })
-            }else{
-                return ProductsModel.findOne({ _id : item._id })
-                .then(response => {
-                    if(item.quantity < 1){
-                        TotalPrice = TotalPrice + ( response.price * 1);
-                    }else{
-                        TotalPrice = TotalPrice + ( response.price * item.quantity);
-                    }
-                })
-            }
+            return ProductsModel.findOne({ _id : item._id })
+            .then(response => {
+                if(item.quantity < 1){
+                    TotalPrice = TotalPrice + ( response.price * 1);
+                }else{
+                    TotalPrice = TotalPrice + ( response.price * item.quantity);
+                }
+            })
         })
-    
         Promise.all(promises)
         .then(() => {
             received.total_price = TotalPrice;
@@ -144,100 +119,8 @@ app.post('/Checkout', urlEncoded, accessToken, function(req, res){
             if(received.min_price < grandTotal){
                 return res.status(400).json("Min price is invalid");
             }else{
-                OrdersModel(received).save()
-                .then(data => {
-        
-                    unirest('POST', 'https://pay.pesapal.com/v3/api/Transactions/SubmitOrderRequest')
-                    .headers({
-                        'Content-Type':'application/json',
-                        'Accept':'application/json',
-                        'Authorization':'Bearer ' + req.access_token
-                    })
-                    .send({
-                        "id": data._id, //order id
-                        "currency": "KES",
-                        "amount":  received.min_price,
-                        "description": "Payment for Iko Nini Merch",
-                        "callback_url": process.env.CLIENT_URL +  "/confirm",
-                        "cancellation_url": process.env.CLIENT_URL + "/cancel", //Replace with frontend failed Page URL
-                        "redirect_mode": "",
-                        "notification_id": process.env.IPN_ID,
-                        "branch": "Iko Nini - Nairobi",
-                        "billing_address": {
-                            "email_address": data.email,
-                            "phone_number": data.phone_number,
-                            "country_code": "KE",
-                            "first_name": received.first_name,
-                            "middle_name": "",
-                            "last_name": received.second_name,
-                            "line_1": "",
-                            "line_2": "",
-                            "city": "",
-                            "state": "",
-                            "postal_code": "",
-                            "zip_code": ""
-                        }
-                    })
-                    .end(response =>{
-                        if (response.error) throw new Error(response.error);
-        
-                        //Update Order with tracking Id
-                        OrdersModel.findOneAndUpdate({_id: data._id}, { OrderTrackingId: response.raw_body.order_tracking_id}, {new: false})
-                        .then( data => {
-                            res.json(response.raw_body)
-                        })
-                        .catch( err => {
-                            res.status(500).json(err);
-                        })
-                    })
-                })
-                .catch(function(err){
-                    res.status(500).json(err);
-                })
-            }
-        })
-        .catch(error => {
-            console.log(error);
-            // Handle errors here
-            res.status(500).json("Server Error. Try again");
-        });
-
-    }else{
-        LocationsModel.findById(location)
-        .then(locationData => {
-            let delivery_cost = locationData.price;
-            let promises = received.items.map( item => {
-                if(item.title){
-                    return VideosModel.findOne({ _id : item._id })
-                    .then(response => {
-                        if(item.quantity < 1){
-                            TotalPrice = TotalPrice + ( response.price * 1);
-                        }else{
-                            TotalPrice = TotalPrice + ( response.price * item.quantity);
-                        }
-                    })
-                }else{
-                    return ProductsModel.findOne({ _id : item._id })
-                    .then(response => {
-                        if(item.quantity < 1){
-                            TotalPrice = TotalPrice + ( response.price * 1);
-                        }else{
-                            TotalPrice = TotalPrice + ( response.price * item.quantity);
-                        }
-                    })
-                }
-            })
-            Promise.all(promises)
-            .then(() => {
-                received.total_price = TotalPrice;
-                received.delivery_cost = delivery_cost;
-                received.amount_paid = received.min_price;
-
-                const grandTotal = received.total_price + received.delivery_cost;
-
-                if(received.min_price < grandTotal){
-                    return res.status(400).json("Min price is invalid");
-                }else{
+                UsersModel.findOne({ _id: received.user_id})
+                .then(user => {
                     OrdersModel(received).save()
                     .then(data => {
             
@@ -256,14 +139,14 @@ app.post('/Checkout', urlEncoded, accessToken, function(req, res){
                             "cancellation_url": process.env.CLIENT_URL + "/cancel", //Replace with frontend failed Page URL
                             "redirect_mode": "",
                             "notification_id": process.env.IPN_ID,
-                            "branch": "Iko Nini - Nairobi",
+                            "branch": "Ruple Art - Nairobi",
                             "billing_address": {
-                                "email_address": data.email,
-                                "phone_number": data.phone_number,
+                                "email_address": user.email,
+                                "phone_number": user.phoneNumber,
                                 "country_code": "KE",
-                                "first_name": received.first_name,
+                                "first_name": user.first_name,
                                 "middle_name": "",
-                                "last_name": received.second_name,
+                                "last_name": user.second_name,
                                 "line_1": "",
                                 "line_2": "",
                                 "city": "",
@@ -288,15 +171,16 @@ app.post('/Checkout', urlEncoded, accessToken, function(req, res){
                     .catch(function(err){
                         res.status(500).json(err);
                     })
-                }
-            })
-            .catch(error => {
-                console.log(error)
-                // Handle errors here
-                res.status(500).json("Server Error. Try again");
-            });
+                })
+                
+            }
         })
-    }    
+        .catch(error => {
+            console.log(error)
+            // Handle errors here
+            res.status(500).json("Server Error. Try again");
+        });
+    })   
 })
 
 //Receives IPN notifcations
@@ -315,129 +199,19 @@ app.post('/ipn_callback', accessToken, urlEncoded, function(req, res){
         let result = JSON.parse(response.raw_body);
 
         OrdersModel.findOneAndUpdate({OrderTrackingId: req.body.OrderTrackingId}, { completion_status: result.payment_status_description},{ new: false })
-        .then( mongoData => {
-            if (mongoData.email_sent) {
-                console.log('Email already sent.');
-                return res.json('success');  // If email already sent, just respond with success
-            }
-
-            if(mongoData.deliveryLocation == "NA"){
-                const reformattedData = {
-                    email: mongoData.email,
-                    username: `${mongoData.first_name} ${mongoData.second_name}`,
-                    delivery_location: "NA",
-                    videos: mongoData.items
-                        .filter(item => item.type === 'video')
-                        .map((item, index) => ({
-                            name: item.title,
-                            price: Number(item.price),
-                            video_id: item.id
-                        })),
-                    products: mongoData.items
-                        .filter(item => item.type !== 'video')
-                        .map(item => ({
-                            name: item.productName,
-                            price: Number(item.price),
-                            image_link: `https://api.ikonini.live/uploads/${item.image}`,
-                            quantity: Number(item.quantity),
-                            size: item.size
-                        })),
-                    payment: {
-                        transaction_id: mongoData.OrderTrackingId,
-                        total_amount: Number(mongoData.amount_paid),
-                        delivery_amount: Number(mongoData.delivery_cost)
-                    }
-                };
-                
-                if (result.payment_status_description.toLowerCase() == "completed") {
+        .then( mongoData => {     
+            if (result.payment_status_description.toLowerCase() == "completed") {
+                UsersModel.findOne({ _id: mongoData.user_id})
+                .then(user => {
                     // Send Success email if paid
-                unirest('POST', 'https://kajit.ikonini.live/send_one_time_link')
-                .headers({
-                    "Content-Type" : "application/json",
-                    "X-ClientID": process.env.CLIENT_ID,
-                    "X-ClientSecret": process.env.CLIENT_SECRET
+                    res.json("Success");
                 })
-                .send(reformattedData)
-                .end(response => {
-                    if (response.error){
-                        console.log(response.error);
-                        throw new Error(response.error);
-                    }else{
-                        OrdersModel.findOneAndUpdate({OrderTrackingId: req.body.OrderTrackingId}, { email_sent: true},{ new: false })
-                        .then(()=>{
-                            console.log("Email sent succesfully");
-                            res.json('success');
-                        })
-                        .catch(()=>{
-                            res.status(500).json("Email not sent");
-                        })
-                    }
+                .catch(err => {
+                    res.status(500).json("Server Error");
                 });
-
-                }
-                
             }else{
-                LocationsModel.findOne({ _id: mongoData.deliveryLocation})
-                .then(LocationData => {
-                    const reformattedData = {
-                        email: mongoData.email,
-                        username: `${mongoData.first_name} ${mongoData.second_name}`,
-                        delivery_location: LocationData.town,
-                        videos: mongoData.items
-                            .filter(item => item.type === 'video')
-                            .map((item, index) => ({
-                                name: item.title,
-                                price: Number(item.price),
-                                video_id: item.id
-                            })),
-                        products: mongoData.items
-                            .filter(item => item.type !== 'video')
-                            .map(item => ({
-                                name: item.productName,
-                                price: Number(item.price),
-                                image_link: `https://api.ikonini.live/uploads/${item.image}`,
-                                quantity: Number(item.quantity),
-                                size: item.size
-                            })),
-                        payment: {
-                            transaction_id: mongoData.OrderTrackingId,
-                            total_amount: Number(mongoData.total_price),
-                            delivery_amount: Number(mongoData.delivery_cost)
-                        }
-                    };
-
-                    if (result.payment_status_description.toLowerCase() == "completed") {
-                            // Send Success email if paid
-                            unirest('POST', 'https://kajit.ikonini.live/send_one_time_link')
-                            .headers({
-                                "Content-Type" : "application/json",
-                                "X-ClientID": process.env.CLIENT_ID,
-                                "X-ClientSecret": process.env.CLIENT_SECRET
-                            })
-                            .send(reformattedData)
-                            .end(response => {
-                                if (response.error){
-                                    console.log(response.error);
-                                    throw new Error(response.error);
-                                }else{
-                                    OrdersModel.findOneAndUpdate({OrderTrackingId: req.body.OrderTrackingId}, { email_sent: true},{ new: false })
-                                    .then(()=>{
-                                        console.log("Email sent succesfully");
-                                        res.json('success');
-                                    })
-                                    .catch(()=>{
-                                        res.status(500).json("Email not sent");
-                                    })
-                                }
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        res.status(500).json("Server error");
-                    })
+                res.json("Not succesfully paid");
             }
-
-            
         })
         .catch(err =>{
             console.log(err);
@@ -530,6 +304,5 @@ app.put('/update_delivery/:id', urlEncoded, verifyToken, function(req, res){
     })
     .catch(err => console.log('error'))
 });
-
 
 module.exports = app;

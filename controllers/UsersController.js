@@ -18,7 +18,7 @@ app.post('/user_login', urlEncoded, function(req, res){
                     const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
                         expiresIn: '1d',
                         });
-                    res.json({ token: token, userId: data._id})
+                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber })
                 }else{
                     res.status(401).json('Wrong Credentials')
                 }
@@ -38,7 +38,7 @@ app.post('/register_user', urlEncoded, (req, res)=>{
             }else{
                     bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
                         // Store hash in your password DB.
-                        UsersModel({ email: req.body.email, password: hash, phoneNumber: req.body.phoneNumber, accountType: 'user'}).save()
+                        UsersModel({ email: req.body.email, first_name: req.body.first_name, second_name: req.body.data.second_name, password: hash, phoneNumber: req.body.phoneNumber, accountType: 'user'}).save()
                         .then( data =>{
                             res.json('Added');
                         })
@@ -100,7 +100,7 @@ app.post('/add_admin_user', urlEncoded, verifyToken, function(req, res){
             }else{
                     bcrypt.hash(myPlaintextPassword, saltRounds, function(err, hash) {
                         // Store hash in your password DB.
-                        UsersModel({ email: req.body.email, password: hash, accountType: 'admin'}).save()
+                        UsersModel({ email: req.body.email, password: hash, accountType: 'admin', first_name: req.body.first_name, second_name: req.body.data.second_name, phoneNumber: req.body.phoneNumber}).save()
                         .then( data =>{
                             res.json('Added');
                         })
