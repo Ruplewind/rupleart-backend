@@ -1,18 +1,13 @@
 let express = require('express');
-
 let app = express.Router();
-
 const bodyParser = require('body-parser');
-
 const urlEncoded = bodyParser.urlencoded({extended: false});
-
 const multer = require('multer'); // For handling file uploads
-
 const fs = require('fs'); // For working with the file system
-
 const path = require('path'); // For handling file paths
 const ProductsModel = require('../models/ProductsModel');
 const verifyToken = require('../middleware/authMiddleware');
+const UsersModel = require('../models/UsersModel');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb)=>{
@@ -25,8 +20,28 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage })
 
-app.get('/get_products', (req, res)=>{
-    ProductsModel.find({})
+app.get('/get_all_products', (req, res)=>{
+    ProductsModel.find({availability: true})
+    .then((data)=>{
+        res.status(200).json(data);
+    })
+    .catch(err => {
+        res.status(400).json('error');
+    })
+});
+
+app.get('/get_unapproved_products', (req, res)=>{
+    ProductsModel.find({approvalStatus: false})
+    .then((data)=>{
+        res.status(200).json(data);
+    })
+    .catch(err => {
+        res.status(400).json('error');
+    })
+});
+
+app.get('/get_products/:user_id', (req, res)=>{
+    ProductsModel.find({ownedBy: req.params.user_id})
     .then((data)=>{
         res.status(200).json(data);
     })
@@ -48,45 +63,49 @@ app.get('/get_products/:type', (req, res)=>{
 app.post('/add_product', verifyToken, upload.single('image'), (req, res)=>{
     let image = req.file.filename;
     let productName  = req.body.productName;
+    let description = req.body.description;
+    let ownedBy = req.body.user_id;
     let type = req.body.type;
-    let price  = req.body.price;
-    let xSmall = req.body.xSmall;
-    let small = req.body.small
-    let medium = req.body.medium
-    let large = req.body.large
-    let xLarge = req.body.xLarge
-    let xXLarge = req.body.xXLarge
+    let price = req.body.price;
+    let size = req.body.size;
 
     let data = {
-        image, type, productName, price, xSmall, small, medium, large,
-        xLarge, xXLarge, availability : true
+        image, type, productName, price, description, ownedBy, size, availability : true
     }
 
-    ProductsModel(data).save()
-    .then(()=>{
-        res.status(200).json('success');
+    UsersModel.findOne({ _id: ownedBy})
+    .then(user => {
+        let approvalStatus = false;
+
+        if(user.accountType == 'admin'){
+            approvalStatus = true;
+        }
+
+        ProductsModel({...data, approvalStatus: approvalStatus}).save()
+        .then(()=>{
+            res.status(200).json('success');
+        })
+        .catch(err => {
+            res.status(400).json('failed');
+        })
     })
     .catch(err => {
-        res.status(400).json('failed');
-    })
+        res.status(500).json("Internal Server Error");
+    });    
 })
 
 app.put('/edit_product/:id', verifyToken, upload.single('image'), (req, res)=>{
     let id = req.params.id;
     let productName  = req.body.productName;
+    let description = req.body.description;
+    let ownedBy = req.body.user_id;
     let type = req.body.type;
-    let price  = req.body.price;
-    let xSmall = req.body.xSmall;
-    let small = req.body.small
-    let medium = req.body.medium
-    let large = req.body.large
-    let xLarge = req.body.xLarge
-    let xXLarge = req.body.xXLarge
+    let price = req.body.price;
+    let size = req.body.size;
 
     if(req.body.image){ // Image is retained
         let data = {
-            type, productName, price, xSmall, small, medium, large,
-            xLarge, xXLarge
+            type, productName, price, description, ownedBy, size
         }
 
         ProductsModel.findByIdAndUpdate(id, data, {new: true})
@@ -100,8 +119,7 @@ app.put('/edit_product/:id', verifyToken, upload.single('image'), (req, res)=>{
     }else{
         let image = req.file.filename;
         let data = {
-            image, type, productName, price, xSmall, small, medium, large,
-            xLarge, xXLarge
+            image, type, productName, price, description, ownedBy, size
         }
 
         ProductsModel.findByIdAndUpdate(id, data, {new: true})
@@ -124,6 +142,26 @@ app.delete('/del_product/:id', urlEncoded, verifyToken, (req, res)=>{
     })
 })
 
+app.post('/approve_product/:id', urlEncoded, verifyToken, (req, res)=>{
+    let approval_value = req.body.approval_value;
+    let disapproval_reason = req.body.disapproval_reason;
+    let approval_status = false;
+
+    if(approval_value == 1){
+        approval_status = true;
+    }else if(approval_value == 0){
+        approval_status = false;
+    }
+
+    ProductsModel.findByIdAndUpdate(req.params.id, { approvalStatus: approval_status, disapproval_reason }, {new: true})
+    .then(()=>{
+        res.status(200).json('success');
+    })
+    .catch(err => {
+        res.status(400).json('failed');
+    })
+})
+
 app.post('/change_availability/:id', urlEncoded, verifyToken, (req, res)=>{
     ProductsModel.findByIdAndUpdate(req.params.id, { availability: req.body.value }, {new: true})
     .then(()=>{
@@ -133,6 +171,5 @@ app.post('/change_availability/:id', urlEncoded, verifyToken, (req, res)=>{
         res.status(400).json('failed');
     })
 })
-
 
 module.exports = app;

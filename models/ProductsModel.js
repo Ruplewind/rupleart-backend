@@ -9,7 +9,8 @@ let productsSchema = new mongoose.Schema({
     price: Number,
     size: String,
     approvalStatus: String,
-    availability: Boolean
+    availability: Boolean,
+    disapproval_reason: String
 })
 
 let ProductsModel = mongoose.model('products', productsSchema);
