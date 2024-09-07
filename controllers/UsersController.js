@@ -1,27 +1,90 @@
 let express = require('express');
-
 let app = express.Router();
-
 const bodyParser = require('body-parser');
-
 const urlEncoded = bodyParser.urlencoded({extended: false});
-
 const bcrypt = require('bcrypt');
-
 const jwt = require('jsonwebtoken');
-
 const UsersModel = require('../models/UsersModel');
-
 const verifyToken = require('../middleware/authMiddleware');
-
 const saltRounds = 10;
-
-const someOtherPlaintextPassword = 'niniiko';
-
 const master_password = process.env.MASTER_PASSWORD; // we should have user roles instead of master passwords
 
+app.post('/user_login', urlEncoded, function(req, res){
+    UsersModel.findOne({$and: [{email: req.body.email},{ accountType: 'user'}]})
+    .then(data =>{
+        if(data){
+            bcrypt.compare(req.body.password, data.password, function(err, result) {
+                if(result){
+                    const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
+                        expiresIn: '1d',
+                        });
+                    res.json({ token: token, userId: data._id})
+                }else{
+                    res.status(401).json('Wrong Credentials')
+                }
+            })
+
+        }else{
+            res.status(401).json('Wrong Credentails')
+        }
+    })
+});
+
+app.post('/register_user', urlEncoded, (req, res)=>{
+    UsersModel.find({$or: [{email: req.body.email},{ phoneNumber : req.body.phoneNumber}]})
+        .then(data =>{
+            if(data.length > 0){
+                res.status(409).json('Exists')
+            }else{
+                    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+                        // Store hash in your password DB.
+                        UsersModel({ email: req.body.email, password: hash, phoneNumber: req.body.phoneNumber, accountType: 'user'}).save()
+                        .then( data =>{
+                            res.json('Added');
+                        })
+                        .catch(err =>{
+                            res.status(500).json('Not Added')
+                        })
+                    });
+            }
+        })
+        .catch(err => console.log(err))
+});
+
+app.post('/change_user_password', urlEncoded, verifyToken, function(req, res){
+    const current_password = req.body.current_password;
+    const new_password = req.body.new_password;
+    const user_id = req.body.user_id;
+
+    UsersModel.findOne({_id: user_id})
+    .then(data =>{
+        if(data){
+            bcrypt.compare(current_password, data.password, function(err, result) {
+                if(result){
+
+                    bcrypt.hash(new_password, saltRounds, function(err, hash) {
+                        // Store hash in your password DB.
+                        UsersModel.findByIdAndUpdate(user_id, {password: hash}, { new: true}).save()
+                        .then( data =>{
+                            res.json('Password Updated');
+                        })
+                        .catch(err =>{
+                            res.status(500).json('Not Added')
+                        })
+                    });
+                }else{
+                    res.status(401).json('Wrong Credentials')
+                }
+            })
+
+        }else{
+            res.status(401).json('Wrong Credentails')
+        }
+    })
+});
+
 //Add Users
-app.post('/add_user', urlEncoded, verifyToken, function(req, res){
+app.post('/add_admin_user', urlEncoded, verifyToken, function(req, res){
     
     const myPlaintextPassword = req.body.password;
     const user_master_password = req.body.master_password;
@@ -37,7 +100,7 @@ app.post('/add_user', urlEncoded, verifyToken, function(req, res){
             }else{
                     bcrypt.hash(myPlaintextPassword, saltRounds, function(err, hash) {
                         // Store hash in your password DB.
-                        UsersModel({ email: req.body.email, password: hash}).save()
+                        UsersModel({ email: req.body.email, password: hash, accountType: 'admin'}).save()
                         .then( data =>{
                             res.json('Added');
                         })
@@ -52,10 +115,9 @@ app.post('/add_user', urlEncoded, verifyToken, function(req, res){
     
 })
 
-
-//Get Userss
-app.get('/Users', verifyToken, function(req, res){
-    UsersModel.find()
+//Get Admin Users
+app.get('/admin_users', verifyToken, function(req, res){
+    UsersModel.find({ accountType: 'admin'})
     .then(data =>{
         res.json(data);    
     })
@@ -78,10 +140,9 @@ app.delete('/delete/:master_password/:id', urlEncoded, verifyToken, function(req
     }
 })
 
-
 //Login
-app.post('/login', urlEncoded, function(req, res){
-    UsersModel.findOne({email: req.body.email})
+app.post('/admin_login', urlEncoded, function(req, res){
+    UsersModel.findOne({$and: [{email: req.body.email},{ accountType: 'admin'}]})
     .then(data =>{
         if(data){
             bcrypt.compare(req.body.password, data.password, function(err, result) {
@@ -101,7 +162,7 @@ app.post('/login', urlEncoded, function(req, res){
     })
 });
 
-app.post('/change_password', urlEncoded, verifyToken, function(req, res){
+app.post('/change_admin_password', urlEncoded, verifyToken, function(req, res){
     const user_master_password = req.body.master_password;
     const new_password = req.body.new_password;
     const user_id = req.body.user_id;
