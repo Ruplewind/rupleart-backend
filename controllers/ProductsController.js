@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage })
 
 app.get('/get_all_products', (req, res)=>{
-    ProductsModel.find({availability: true})
+    ProductsModel.find()
     .then((data)=>{
         res.status(200).json(data);
     })
@@ -64,8 +64,8 @@ app.post('/add_product', verifyToken, upload.single('image'), (req, res)=>{
     let image = req.file.filename;
     let productName  = req.body.productName;
     let description = req.body.description;
-    let ownedBy = req.body.user_id;
-    let type = req.body.type;
+    let ownedBy = req.userId;
+    let type = req.body.type.charAt(0).toUpperCase() + req.body.type.slice(1).toLowerCase();
     let price = req.body.price;
     let size = req.body.size;
 
@@ -75,10 +75,10 @@ app.post('/add_product', verifyToken, upload.single('image'), (req, res)=>{
 
     UsersModel.findOne({ _id: ownedBy})
     .then(user => {
-        let approvalStatus = false;
+        let approvalStatus = 0;
 
         if(user.accountType == 'admin'){
-            approvalStatus = true;
+            approvalStatus = 1;
         }
 
         ProductsModel({...data, approvalStatus: approvalStatus}).save()
@@ -98,14 +98,13 @@ app.put('/edit_product/:id', verifyToken, upload.single('image'), (req, res)=>{
     let id = req.params.id;
     let productName  = req.body.productName;
     let description = req.body.description;
-    let ownedBy = req.body.user_id;
-    let type = req.body.type;
+    let type = req.body.type.charAt(0).toUpperCase() + req.body.type.slice(1).toLowerCase();
     let price = req.body.price;
     let size = req.body.size;
 
     if(req.body.image){ // Image is retained
         let data = {
-            type, productName, price, description, ownedBy, size
+            type, productName, price, description, size
         }
 
         ProductsModel.findByIdAndUpdate(id, data, {new: true})
@@ -119,7 +118,7 @@ app.put('/edit_product/:id', verifyToken, upload.single('image'), (req, res)=>{
     }else{
         let image = req.file.filename;
         let data = {
-            image, type, productName, price, description, ownedBy, size
+            image, type, productName, price, description, size
         }
 
         ProductsModel.findByIdAndUpdate(id, data, {new: true})

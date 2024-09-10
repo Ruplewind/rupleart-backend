@@ -1,14 +1,14 @@
 const mongoose = require('mongoose');
 
 let productsSchema = new mongoose.Schema({
-    images: [String],
+    image: String,
     productName: String,
     description: String,
     ownedBy: String,
     type: String,
     price: Number,
     size: String,
-    approvalStatus: String,
+    approvalStatus: Number,
     availability: Boolean,
     disapproval_reason: String
 })

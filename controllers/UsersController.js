@@ -100,7 +100,7 @@ app.post('/add_admin_user', urlEncoded, verifyToken, function(req, res){
             }else{
                     bcrypt.hash(myPlaintextPassword, saltRounds, function(err, hash) {
                         // Store hash in your password DB.
-                        UsersModel({ email: req.body.email, password: hash, accountType: 'admin', first_name: req.body.first_name, second_name: req.body.data.second_name, phoneNumber: req.body.phoneNumber}).save()
+                        UsersModel({ email: req.body.email, password: hash, accountType: 'admin', first_name: req.body.first_name, second_name: req.body.second_name, phoneNumber: req.body.phoneNumber}).save()
                         .then( data =>{
                             res.json('Added');
                         })
