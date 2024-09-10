@@ -30,8 +30,8 @@ app.get('/get_all_products', (req, res)=>{
     })
 });
 
-app.get('/get_unapproved_products', (req, res)=>{
-    ProductsModel.find({approvalStatus: false})
+app.get('/get_approved_products', (req, res)=>{
+    ProductsModel.find({ approvalStatus: 1})
     .then((data)=>{
         res.status(200).json(data);
     })
@@ -40,15 +40,26 @@ app.get('/get_unapproved_products', (req, res)=>{
     })
 });
 
-app.get('/get_products/:user_id', (req, res)=>{
-    ProductsModel.find({ownedBy: req.params.user_id})
+app.get('/my_products', verifyToken ,(req, res)=>{
+    let user_id = req.userId;
+    ProductsModel.find({ ownedBy: user_id})
     .then((data)=>{
         res.status(200).json(data);
     })
     .catch(err => {
         res.status(400).json('error');
     })
-})
+});
+
+app.get('/get_unapproved_products', (req, res)=>{
+    ProductsModel.find({approvalStatus: 0})
+    .then((data)=>{
+        res.status(200).json(data);
+    })
+    .catch(err => {
+        res.status(400).json('error');
+    })
+});
 
 app.get('/get_products/:type', (req, res)=>{
     ProductsModel.find({$and: [{availability: true},{type: req.params.type}]})
@@ -143,16 +154,9 @@ app.delete('/del_product/:id', urlEncoded, verifyToken, (req, res)=>{
 
 app.post('/approve_product/:id', urlEncoded, verifyToken, (req, res)=>{
     let approval_value = req.body.approval_value;
-    let disapproval_reason = req.body.disapproval_reason;
-    let approval_status = false;
+    let disapproval_reason = req.body.dissapprovalReason;
 
-    if(approval_value == 1){
-        approval_status = true;
-    }else if(approval_value == 0){
-        approval_status = false;
-    }
-
-    ProductsModel.findByIdAndUpdate(req.params.id, { approvalStatus: approval_status, disapproval_reason }, {new: true})
+    ProductsModel.findByIdAndUpdate(req.params.id, { approvalStatus: approval_value, disapproval_reason }, {new: true})
     .then(()=>{
         res.status(200).json('success');
     })
