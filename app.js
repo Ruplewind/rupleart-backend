@@ -29,7 +29,10 @@ let OrdersController = require('./controllers/OrdersController');
 app.use('/', OrdersController);
 
 let LocationsController = require('./controllers/LocationsController');
-app.use('/', LocationsController)
+app.use('/', LocationsController);
+
+let CategoriesController = require('./controllers/CategoriesController');
+app.use('/', CategoriesController);
 
 app.get('/',(req, res)=>{
     res.json('Ruple art');
