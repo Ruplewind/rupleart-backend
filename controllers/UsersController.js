@@ -38,7 +38,7 @@ app.post('/register_user', urlEncoded, (req, res)=>{
             }else{
                     bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
                         // Store hash in your password DB.
-                        UsersModel({ email: req.body.email, first_name: req.body.first_name, second_name: req.body.data.second_name, password: hash, phoneNumber: req.body.phoneNumber, accountType: 'user'}).save()
+                        UsersModel({ email: req.body.email, first_name: req.body.first_name, second_name: req.body.second_name, password: hash, phoneNumber: req.body.phoneNumber, accountType: 'user'}).save()
                         .then( data =>{
                             res.json('Added');
                         })
