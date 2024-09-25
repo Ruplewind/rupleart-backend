@@ -30,6 +30,35 @@ app.post('/user_login', urlEncoded, function(req, res){
     })
 });
 
+app.get("/profile", urlEncoded, verifyToken, (req, res)=>{
+    let userId = req.userId;
+
+    UsersModel.findOne({_id: userId})
+    .then(data => {
+        res.json({
+            first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber
+        });
+    })
+    .catch(err => {
+        res.status(500).json(err);
+        console.log(err);
+    })
+});
+
+app.put("/update_profile", urlEncoded, verifyToken, (req, res)=>{
+    let userId = req.userId;
+    let data = req.body;
+
+    UsersModel.findByIdAndUpdate({_id: userId}, { first_name: data.firstname, second_name: data.secondname, phoneNumber: data.phoneNumber }, { new:true})
+    .then(data => {
+        res.json("Success");
+    })
+    .catch(err => {
+        res.status(500).json(err);
+        console.log(err);
+    })
+});
+
 app.post('/register_user', urlEncoded, (req, res)=>{
     UsersModel.find({$or: [{email: req.body.email},{ phoneNumber : req.body.phoneNumber}]})
         .then(data =>{
@@ -51,10 +80,10 @@ app.post('/register_user', urlEncoded, (req, res)=>{
         .catch(err => console.log(err))
 });
 
-app.post('/change_user_password', urlEncoded, verifyToken, function(req, res){
+app.put('/change_user_password', urlEncoded, verifyToken, function(req, res){
     const current_password = req.body.current_password;
     const new_password = req.body.new_password;
-    const user_id = req.body.user_id;
+    const user_id = req.userId;
 
     UsersModel.findOne({_id: user_id})
     .then(data =>{
@@ -64,7 +93,7 @@ app.post('/change_user_password', urlEncoded, verifyToken, function(req, res){
 
                     bcrypt.hash(new_password, saltRounds, function(err, hash) {
                         // Store hash in your password DB.
-                        UsersModel.findByIdAndUpdate(user_id, {password: hash}, { new: true}).save()
+                        UsersModel.findByIdAndUpdate(user_id, {password: hash}, { new: true})
                         .then( data =>{
                             res.json('Password Updated');
                         })
