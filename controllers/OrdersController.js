@@ -88,8 +88,7 @@ app.post('/Checkout', urlEncoded, accessToken, function(req, res){
         delivery_status : "pending",
         order_date : date,
         delivery_date : "",
-        min_price: req.body.minPrice,
-        email_sent : false
+        min_price: req.body.minPrice
     }
 
     let TotalPrice = 0;
@@ -176,7 +175,7 @@ app.post('/Checkout', urlEncoded, accessToken, function(req, res){
             }
         })
         .catch(error => {
-            console.log(error)
+            console.log(error);
             // Handle errors here
             res.status(500).json("Server Error. Try again");
         });
