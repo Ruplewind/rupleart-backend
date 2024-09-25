@@ -34,6 +34,9 @@ app.use('/', LocationsController);
 let CategoriesController = require('./controllers/CategoriesController');
 app.use('/', CategoriesController);
 
+let EventsController = require('./controllers/EventsController');
+app.use('/', EventsController);
+
 app.get('/',(req, res)=>{
     res.json('Ruple art');
 })
