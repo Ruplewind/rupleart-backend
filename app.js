@@ -37,6 +37,9 @@ app.use('/', CategoriesController);
 let EventsController = require('./controllers/EventsController');
 app.use('/', EventsController);
 
+let MessagesController = require('./controllers/MessagesController');
+app.use('/', MessagesController);
+
 app.get('/',(req, res)=>{
     res.json('Ruple art');
 })

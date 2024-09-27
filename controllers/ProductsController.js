@@ -115,7 +115,7 @@ app.put('/edit_product/:id', verifyToken, upload.single('image'), (req, res)=>{
 
     if(req.body.image){ // Image is retained
         let data = {
-            type, productName, price, description, size
+            type, productName, price, description, size, approvalStatus : 0
         }
 
         ProductsModel.findByIdAndUpdate(id, data, {new: true})
@@ -129,7 +129,7 @@ app.put('/edit_product/:id', verifyToken, upload.single('image'), (req, res)=>{
     }else{
         let image = req.file.filename;
         let data = {
-            image, type, productName, price, description, size
+            image, type, productName, price, description, size, approvalStatus : 0
         }
 
         ProductsModel.findByIdAndUpdate(id, data, {new: true})
