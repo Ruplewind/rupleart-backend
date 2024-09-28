@@ -66,7 +66,7 @@ const phoneRegex = /^0[0-9]{9}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 //Submit Order Request
-app.post('/Checkout', urlEncoded, accessToken, function(req, res){
+app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
     let date = getTodayDate();
 
     // Validate email
@@ -81,7 +81,7 @@ app.post('/Checkout', urlEncoded, accessToken, function(req, res){
 
     let received = {
         OrderTrackingId : "",
-        user_id: req.body.user_id,
+        user_id: req.userId,
         items : req.body.products,
         completion_status: "pending",
         deliveryLocation : req.body.location,
