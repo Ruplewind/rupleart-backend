@@ -265,8 +265,25 @@ app.get('/RegisteredIpns', accessToken, function(req, res){
 //Get Delivered Orders
 app.get('/GetAllOrders', verifyToken, function(req, res){
     OrdersModel.find({ completion_status: "Completed"})
-    .then( data =>{ 
-        res.json(data);
+    .then(data => { 
+        let promises = data.map(user => {
+            return UsersModel.findOne({ _id: user.user_id })
+            .then(result => {
+                return { 
+                    ...user.toObject(), // Convert the Mongoose document to a plain JavaScript object
+                    first_name: result.first_name, 
+                    second_name: result.second_name, 
+                    email: result.email, 
+                    phoneNumber: result.phoneNumber 
+                };
+            });
+        });
+
+        // Wait for all the promises to resolve
+        return Promise.all(promises);
+    })
+    .then(newData => {
+        res.json(newData);
     })
     .catch(err =>{
         console.log(err);
@@ -275,8 +292,25 @@ app.get('/GetAllOrders', verifyToken, function(req, res){
 
 app.get('/GetDeliveredOrders', verifyToken, function(req, res){
     OrdersModel.find({ delivery_status: 'delivered' })
-    .then( data =>{ 
-        res.json(data);
+    .then(data => { 
+        let promises = data.map(user => {
+            return UsersModel.findOne({ _id: user.user_id })
+            .then(result => {
+                return { 
+                    ...user.toObject(), // Convert the Mongoose document to a plain JavaScript object
+                    first_name: result.first_name, 
+                    second_name: result.second_name, 
+                    email: result.email, 
+                    phoneNumber: result.phoneNumber 
+                };
+            });
+        });
+
+        // Wait for all the promises to resolve
+        return Promise.all(promises);
+    })
+    .then(newData => {
+        res.json(newData);
     })
     .catch(err =>{
         console.log(err);
@@ -284,15 +318,34 @@ app.get('/GetDeliveredOrders', verifyToken, function(req, res){
 })
 
 //Get Orders Pending Delivery
-app.get('/GetPendingOrders', verifyToken, function(req, res){
-    OrdersModel.find({$and:[{ delivery_status: 'pending' },{completion_status: 'Completed'}]})
-    .then( data =>{ 
-        res.json(data);
+app.get('/GetPendingOrders', verifyToken, function(req, res) {
+    OrdersModel.find({ $and: [{ delivery_status: 'pending' }, { completion_status: 'Completed' }] })
+    .then(data => { 
+        let promises = data.map(user => {
+            return UsersModel.findOne({ _id: user.user_id })
+            .then(result => {
+                return { 
+                    ...user.toObject(), // Convert the Mongoose document to a plain JavaScript object
+                    first_name: result.first_name, 
+                    second_name: result.second_name, 
+                    email: result.email, 
+                    phoneNumber: result.phoneNumber 
+                };
+            });
+        });
+
+        // Wait for all the promises to resolve
+        return Promise.all(promises);
     })
-    .catch(err =>{
+    .then(newData => {
+        res.json(newData);
+    })
+    .catch(err => {
         console.log(err);
-    })
-})
+        res.status(500).send("Error fetching orders");
+    });
+});
+
 
 //Update Orders On Delivery
 app.put('/update_delivery/:id', urlEncoded, verifyToken, function(req, res){
