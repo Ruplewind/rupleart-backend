@@ -288,6 +288,17 @@ app.get('/GetAllOrders', verifyToken, function(req, res){
     .catch(err =>{
         console.log(err);
     })
+});
+
+//Get Delivered Orders
+app.get('/GetMyOrders', verifyToken, function(req, res){
+    OrdersModel.find({ completion_status: "Completed", user_id: req.userId})
+    .then(newData => {
+        res.json(newData);
+    })
+    .catch(err =>{
+        console.log(err);
+    })
 })
 
 app.get('/GetDeliveredOrders', verifyToken, function(req, res){
