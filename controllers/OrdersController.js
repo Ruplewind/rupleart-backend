@@ -292,7 +292,7 @@ app.get('/GetAllOrders', verifyToken, function(req, res){
 
 //Get Delivered Orders
 app.get('/GetMyOrders', verifyToken, function(req, res){
-    OrdersModel.find({ completion_status: "Completed", user_id: req.userId})
+    OrdersModel.find({$and : [{ completion_status: "Completed", user_id: req.userId}]})
     .then(newData => {
         res.json(newData);
     })
