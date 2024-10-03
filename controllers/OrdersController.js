@@ -133,7 +133,7 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
                             "id": data._id, //order id
                             "currency": "KES",
                             "amount":  received.min_price,
-                            "description": "Payment for Iko Nini Merch",
+                            "description": "Payment for Artworks",
                             "callback_url": process.env.CLIENT_URL +  "/confirm",
                             "cancellation_url": process.env.CLIENT_URL + "/cancel", //Replace with frontend failed Page URL
                             "redirect_mode": "",
