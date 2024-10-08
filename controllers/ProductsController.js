@@ -40,16 +40,42 @@ app.get('/get_approved_products', (req, res)=>{
     })
 });
 
-app.get('/my_products', verifyToken ,(req, res)=>{
+app.get('/my_products', verifyToken, (req, res) => {
     let user_id = req.userId;
-    ProductsModel.find({ ownedBy: user_id})
-    .then((data)=>{
-        res.status(200).json(data);
-    })
-    .catch(err => {
-        res.status(400).json('error');
-    })
+    UsersModel.findOne({ _id: user_id })
+        .then(response => {
+            if (response.accountType == 'admin') {
+                // Find all products owned by admins
+                UsersModel.find({ accountType: 'admin' })
+                    .then(adminUsers => {
+                        const adminIds = adminUsers.map(user => user._id); // Extract the ids of all admins
+                        ProductsModel.find({ ownedBy: { $in: adminIds } })
+                            .then((data) => {
+                                res.status(200).json(data);
+                            })
+                            .catch(err => {
+                                res.status(400).json('error');
+                            });
+                    })
+                    .catch(err => {
+                        res.status(400).json('error');
+                    });
+            } else {
+                // Find only products owned by this user
+                ProductsModel.find({ ownedBy: user_id })
+                    .then((data) => {
+                        res.status(200).json(data);
+                    })
+                    .catch(err => {
+                        res.status(400).json('error');
+                    });
+            }
+        })
+        .catch(err => {
+            res.status(400).json('error');
+        });
 });
+
 
 app.get('/get_unapproved_products', (req, res)=>{
     ProductsModel.find({approvalStatus: 0})
