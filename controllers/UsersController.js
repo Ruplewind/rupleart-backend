@@ -153,6 +153,15 @@ app.get('/admin_users', verifyToken, function(req, res){
     .catch(err => console.log(err))
 })
 
+//Get Regular Users
+app.get('/regular_users', verifyToken, function(req, res){
+    UsersModel.find({ accountType: 'user'})
+    .then(data =>{
+        res.json(data);    
+    })
+    .catch(err => console.log(err))
+})
+
 //Delete Users
 app.delete('/delete/:master_password/:id', urlEncoded, verifyToken, function(req, res){
 
