@@ -262,86 +262,38 @@ app.get('/RegisteredIpns', accessToken, function(req, res){
     });
 })
 
-//Get Delivered Orders
 app.get('/GetAllOrders', verifyToken, function(req, res){
-    OrdersModel.find({ completion_status: "Completed"})
-    .then(data => { 
-        let promises = data.map(user => {
-            return UsersModel.findOne({ _id: user.user_id })
-            .then(result => {
-                return { 
-                    ...user.toObject(), // Convert the Mongoose document to a plain JavaScript object
-                    first_name: result.first_name, 
-                    second_name: result.second_name, 
-                    email: result.email, 
-                    phoneNumber: result.phoneNumber 
-                };
-            });
-        });
+    OrdersModel.find({ completion_status: "Completed" })
+    .then(data => {
+        let promises = data.map(order => {
+            // Find the user who placed the order
+            return UsersModel.findOne({ _id: order.user_id })
+            .then(userResult => {
+                // Map through each item in the order to find the item's owner details
+                let itemPromises = order.items.map(item => {
+                    return UsersModel.findOne({ _id: item.ownedBy })
+                    .then(ownerResult => {
+                        return {
+                            ...item, // Keep the item data
+                            owner_first_name: ownerResult.first_name,
+                            owner_second_name: ownerResult.second_name,
+                            owner_email : ownerResult.email,
+                            owner_phone_number : ownerResult.phoneNumber
+                        };
+                    });
+                });
 
-        // Wait for all the promises to resolve
-        return Promise.all(promises);
-    })
-    .then(newData => {
-        res.json(newData);
-    })
-    .catch(err =>{
-        console.log(err);
-    })
-});
-
-//Get Delivered Orders
-app.get('/GetMyOrders', verifyToken, function(req, res){
-    OrdersModel.find({$and : [{ completion_status: "Completed", user_id: req.userId}]})
-    .then(newData => {
-        res.json(newData);
-    })
-    .catch(err =>{
-        console.log(err);
-    })
-})
-
-app.get('/GetDeliveredOrders', verifyToken, function(req, res){
-    OrdersModel.find({ delivery_status: 'delivered' })
-    .then(data => { 
-        let promises = data.map(user => {
-            return UsersModel.findOne({ _id: user.user_id })
-            .then(result => {
-                return { 
-                    ...user.toObject(), // Convert the Mongoose document to a plain JavaScript object
-                    first_name: result.first_name, 
-                    second_name: result.second_name, 
-                    email: result.email, 
-                    phoneNumber: result.phoneNumber 
-                };
-            });
-        });
-
-        // Wait for all the promises to resolve
-        return Promise.all(promises);
-    })
-    .then(newData => {
-        res.json(newData);
-    })
-    .catch(err =>{
-        console.log(err);
-    })
-})
-
-//Get Orders Pending Delivery
-app.get('/GetPendingOrders', verifyToken, function(req, res) {
-    OrdersModel.find({ $and: [{ delivery_status: 'pending' }, { completion_status: 'Completed' }] })
-    .then(data => { 
-        let promises = data.map(user => {
-            return UsersModel.findOne({ _id: user.user_id })
-            .then(result => {
-                return { 
-                    ...user.toObject(), // Convert the Mongoose document to a plain JavaScript object
-                    first_name: result.first_name, 
-                    second_name: result.second_name, 
-                    email: result.email, 
-                    phoneNumber: result.phoneNumber 
-                };
+                // Wait for all the item promises to resolve
+                return Promise.all(itemPromises).then(updatedItems => {
+                    return {
+                        ...order.toObject(), // Convert the Mongoose document to a plain JavaScript object
+                        items: updatedItems, // Updated items with owner's details
+                        first_name: userResult.first_name, 
+                        second_name: userResult.second_name, 
+                        email: userResult.email, 
+                        phoneNumber: userResult.phoneNumber
+                    };
+                });
             });
         });
 
@@ -353,9 +305,118 @@ app.get('/GetPendingOrders', verifyToken, function(req, res) {
     })
     .catch(err => {
         console.log(err);
-        res.status(500).send("Error fetching orders");
     });
 });
+
+
+//Get My Orders
+app.get('/GetMyOrders', verifyToken, function(req, res){
+    OrdersModel.find({$and : [{ completion_status: "Completed", user_id: req.userId}]})
+    .then(newData => {
+        res.json(newData);
+    })
+    .catch(err =>{
+        console.log(err);
+    })
+})
+
+//Get Delivered Orders
+app.get('/GetDeliveredOrders', verifyToken, function(req, res){
+    OrdersModel.find({ delivery_status: 'delivered' })
+    .then(data => {
+        let promises = data.map(order => {
+            // Find the user who placed the order
+            return UsersModel.findOne({ _id: order.user_id })
+            .then(userResult => {
+                // Map through each item in the order to find the item's owner details
+                let itemPromises = order.items.map(item => {
+                    return UsersModel.findOne({ _id: item.ownedBy })
+                    .then(ownerResult => {
+                        return {
+                            ...item, // Keep the item data
+                            owner_first_name: ownerResult.first_name,
+                            owner_second_name: ownerResult.second_name,
+                            owner_email : ownerResult.email,
+                            owner_phone_number : ownerResult.phoneNumber
+                        };
+                    });
+                });
+
+                // Wait for all the item promises to resolve
+                return Promise.all(itemPromises).then(updatedItems => {
+                    return {
+                        ...order.toObject(), // Convert the Mongoose document to a plain JavaScript object
+                        items: updatedItems, // Updated items with owner's details
+                        first_name: userResult.first_name, 
+                        second_name: userResult.second_name, 
+                        owner_email: userResult.email, 
+                        owner_phoneNumber: userResult.phoneNumber
+                    };
+                });
+            });
+        });
+
+        // Wait for all the promises to resolve
+        return Promise.all(promises);
+    })
+    .then(newData => {
+        res.json(newData);
+    })
+    .catch(err => {
+        console.log(err);
+        res.status(500).send("Error fetching delivered orders");
+    });
+});
+
+
+//Get Orders Pending Delivery
+app.get('/GetPendingOrders', verifyToken, function(req, res) {
+    OrdersModel.find({ $and: [{ delivery_status: 'pending' }, { completion_status: 'Completed' }] })
+    .then(data => {
+        let promises = data.map(order => {
+            // Find the user who placed the order
+            return UsersModel.findOne({ _id: order.user_id })
+            .then(userResult => {
+                // Map through each item in the order to find the item's owner details
+                let itemPromises = order.items.map(item => {
+                    return UsersModel.findOne({ _id: item.ownedBy })
+                    .then(ownerResult => {
+                        return {
+                            ...item, // Keep the item data
+                            owner_first_name: ownerResult.first_name,
+                            owner_second_name: ownerResult.second_name, 
+                            owner_email: userResult.email, 
+                            owner_phoneNumber: userResult.phoneNumber
+                        };
+                    });
+                });
+
+                // Wait for all the item promises to resolve
+                return Promise.all(itemPromises).then(updatedItems => {
+                    return {
+                        ...order.toObject(), // Convert the Mongoose document to a plain JavaScript object
+                        items: updatedItems, // Updated items with owner's details
+                        first_name: userResult.first_name, 
+                        second_name: userResult.second_name, 
+                        owner_email: userResult.email, 
+                        owner_phoneNumber: userResult.phoneNumber
+                    };
+                });
+            });
+        });
+
+        // Wait for all the promises to resolve
+        return Promise.all(promises);
+    })
+    .then(newData => {
+        res.json(newData);
+    })
+    .catch(err => {
+        console.log(err);
+        res.status(500).send("Error fetching pending orders");
+    });
+});
+
 
 
 //Update Orders On Delivery
