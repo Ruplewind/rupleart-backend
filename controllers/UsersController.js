@@ -221,4 +221,8 @@ app.post('/change_admin_password', urlEncoded, verifyToken, function(req, res){
     }   
 })
 
+app.get('/token_validity', verifyToken, (req, res)=>{
+    res.status(200).json("Valid");
+})
+
 module.exports = app
