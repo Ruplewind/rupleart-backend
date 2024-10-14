@@ -16,7 +16,7 @@ app.post('/user_login', urlEncoded, function(req, res){
             bcrypt.compare(req.body.password, data.password, function(err, result) {
                 if(result){
                     const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
-                        expiresIn: '1d',
+                        expiresIn: '7d',
                         });
                     res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber })
                 }else{
