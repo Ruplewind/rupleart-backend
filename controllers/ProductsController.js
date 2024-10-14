@@ -1,7 +1,7 @@
 let express = require('express');
 let app = express.Router();
 const bodyParser = require('body-parser');
-const urlEncoded = bodyParser.urlencoded({extended: false});
+const urlEncoded = bodyParser.urlencoded({limit: '50mb', extended: false});
 const multer = require('multer'); // For handling file uploads
 const fs = require('fs'); // For working with the file system
 const path = require('path'); // For handling file paths
@@ -331,7 +331,7 @@ const transporter = nodemailer.createTransport({
   };
 
 
-const upload = multer({ storage })
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } })
 
 app.get('/get_all_products', (req, res)=>{
     ProductsModel.find()
