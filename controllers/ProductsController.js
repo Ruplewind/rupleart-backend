@@ -410,7 +410,7 @@ app.get('/get_products/:type', (req, res)=>{
     })
 })
 
-app.post('/add_product', verifyToken, upload.single('image'), (req, res)=>{
+app.post('/add_product', upload.single('image'), verifyToken, (req, res)=>{
     let image = req.file.filename;
     let productName  = req.body.productName;
     let description = req.body.description;
@@ -444,7 +444,7 @@ app.post('/add_product', verifyToken, upload.single('image'), (req, res)=>{
     });    
 })
 
-app.put('/edit_product/:id', verifyToken, upload.single('image'), (req, res)=>{
+app.put('/edit_product/:id', upload.single('image'), verifyToken, (req, res)=>{
     let id = req.params.id;
     let productName  = req.body.productName;
     let description = req.body.description;
