@@ -256,7 +256,7 @@ const ProductRecalledMailTemplate  = (product) => {
         <div class="title">Product Approval Alerts</div>
 
         <div class="content">
-          <p>Yay! Your product has been approval has been recalled for further verification. You will get a response within 24hrs!</p>
+          <p>Your product approval has been recalled for further verification. You will get a response within 24hrs!</p>
 
           <p>Here are the product details</p>
 
@@ -673,7 +673,7 @@ app.post('/approve_product/:id', urlEncoded, verifyToken, (req, res)=>{
               const options = {
                     from: `RupleArt <${process.env.EMAIL_USER}>`, // sender address
                     to: `${result.email}`, // receiver email
-                    subject: "Your Product Approval has Beeen Recalled For Further Verification", // Subject line
+                    subject: "Product Approval has Beeen Recalled For Further Verification", // Subject line
                     html: ProductRecalledMailTemplate(data),
                 }
                 // Send Email
