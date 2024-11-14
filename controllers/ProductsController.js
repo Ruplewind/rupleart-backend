@@ -158,6 +158,145 @@ const ProductApprovedMailTemplate  = (product) => {
       `;
 }
 
+const ProductRecalledMailTemplate  = (product) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Product Approval has been recalled</title>
+      <style>
+        .container {
+          margin-top: 10px;
+        }
+
+        .logo {
+          font-weight: bold;
+          padding: 20px;
+          text-align: center;
+        }
+
+        .title {
+          padding: 20px;
+          text-align: center;
+          background-color: #EEF2FE;
+          font-weight: bold;
+          font-size: 28px;
+        }
+
+        .content {
+          text-align: center;
+          background-color: #FAFAFA;
+          padding: 20px;
+        }
+
+        .credentials {
+          display: flex;
+          justify-content: center;
+          margin: 0 auto;
+          margin-bottom: 30px;
+        }
+
+        table {
+          font-weight: bold;
+          padding: 15px;
+          margin: 0 auto;
+          margin-top: 20px;
+          text-align: left;
+          width: 30%;
+        }
+
+        table td {
+          padding-right: 10px;
+          font-weight: lighter;
+          font-size: 16px;
+        }
+
+        .sign {
+          display: flex;
+          justify-content: center;
+          color: black;
+        }
+
+        .signin-btn {
+          background-color: #C8F761;
+          text-align: center;
+          padding: 10px;
+          border-radius: 5px;
+          display: block;
+          margin: 0 auto;
+          text-decoration: none;
+          color: black;
+          width: 30%;
+        }
+
+        .footer {
+          background-color: black;
+          text-align: center;
+          color: white;
+          padding: 30px;
+          margin-top: 20px;
+        }
+
+        .footer p {
+          margin: 0;
+        }
+
+        .disclaimer {
+          font-size: 12px;
+          margin-top: 20px;
+        }
+      </style>
+    </head>
+
+    <body>
+      <div class="container">
+        <div class="logo">RupleArt</div>
+
+        <div class="title">Product Approval Alerts</div>
+
+        <div class="content">
+          <p>Yay! Your product has been approval has been recalled for further verification. You will get a response within 24hrs!</p>
+
+          <p>Here are the product details</p>
+
+          <div class="credentials">
+            <table>
+              <tr>
+                <td>Products name:</td>
+                <td>${product.productName}</td>
+              </tr>
+              <tr>
+                <td>Description:</td>
+                <td>${product.description}</td>
+              </tr>
+              <tr>
+                <td>Size:</td>
+                <td>${product.size}</td>
+              </tr>
+              <tr>
+                <td>Price:</td>
+                <td>${product.price}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="sign">
+            <a href="https://rupleart.com/" class="signin-btn">Sign In</a>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>Ruple Wind Limited</p>
+          <p class="disclaimer">Please do not reply to this email. This mailbox is not monitored.</p>
+        </div>
+      </div>
+    </body>
+
+    </html>
+    `;
+}
+
 const ProductNotApprovedMailTemplate  = (product, reason) => {
     return `
       <!DOCTYPE html>
@@ -524,6 +663,19 @@ app.post('/approve_product/:id', urlEncoded, verifyToken, (req, res)=>{
                     html: ProductNotApprovedMailTemplate(data, disapproval_reason),
                 }
         
+                // Send Email
+                SENDMAIL(options, (info) => {
+                    console.log("Email sent successfully");
+                    console.log("MESSAGE ID: ", info.messageId);
+                    res.status(200).json('success');
+                });
+            }else{
+              const options = {
+                    from: `RupleArt <${process.env.EMAIL_USER}>`, // sender address
+                    to: `${result.email}`, // receiver email
+                    subject: "Your Product Approval has Beeen Recalled For Further Verification", // Subject line
+                    html: ProductRecalledMailTemplate(data),
+                }
                 // Send Email
                 SENDMAIL(options, (info) => {
                     console.log("Email sent successfully");
