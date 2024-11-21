@@ -75,9 +75,9 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
     }
 
     // Validate phone number
-    if (req.body.phoneNumber && !phoneRegex.test(req.body.phoneNumber)) {
-        return res.status(400).json("Invalid phone number");
-    }
+    // if (req.body.phoneNumber && !phoneRegex.test(req.body.phoneNumber)) {
+    //     return res.status(400).json("Invalid phone number");
+    // }
 
     let received = {
         OrderTrackingId : "",
