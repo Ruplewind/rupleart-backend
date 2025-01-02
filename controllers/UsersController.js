@@ -30,6 +30,27 @@ app.post('/user_login', urlEncoded, function(req, res){
     })
 });
 
+app.post('/user_m_login', urlEncoded, function(req, res){
+    UsersModel.findOne({$and: [{email: req.body.email},{ accountType: 'user'}]})
+    .then(data =>{
+        if(data){
+            bcrypt.compare(req.body.password, data.password, function(err, result) {
+                if(result){
+                    const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
+                        expiresIn: 31449600,
+                        });
+                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber })
+                }else{
+                    res.status(401).json('Wrong Credentials')
+                }
+            })
+
+        }else{
+            res.status(401).json('Wrong Credentails')
+        }
+    })
+});
+
 app.get("/profile", urlEncoded, verifyToken, (req, res)=>{
     let userId = req.userId;
 
