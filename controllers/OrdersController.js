@@ -11,8 +11,7 @@ const verifyToken = require('../middleware/authMiddleware');
 const UsersModel = require('../models/UsersModel');
 
 function accessToken(req, res, next){
-
-    unirest('POST', `${process.env.BASE_URL}/api/Auth/RequestToken`)
+    unirest('POST', `${process.env.LIVE_BASE_URL}/api/Auth/RequestToken`)
     .headers({
         "Content-Type" : "application/json",
         "Accept" : "application/json"
@@ -44,7 +43,7 @@ function getTodayDate() {
 //Register IPN callback URL
 app.get('/RegisterIpn', accessToken, function(req, res){
 
-    unirest('POST', `${process.env.BASE_URL}/api/URLSetup/RegisterIPN`)
+    unirest('POST', `${process.env.LIVE_BASE_URL}/api/URLSetup/RegisterIPN`)
     .headers({
         "Content-Type" : "application/json",
         "Accept" : "application/json",
@@ -123,7 +122,7 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
                     OrdersModel(received).save()
                     .then(data => {
             
-                        unirest('POST', `${process.env.BASE_URL}/api/Transactions/SubmitOrderRequest`)
+                        unirest('POST', `${process.env.LIVE_BASE_URL}/api/Transactions/SubmitOrderRequest`)
                         .headers({
                             'Content-Type':'application/json',
                             'Accept':'application/json',
@@ -155,6 +154,8 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
                             }
                         })
                         .end(response =>{
+                            console.log(response.error)
+                            debugger;
                             if (response.error) throw new Error(response.error);
             
                             //Update Order with tracking Id
@@ -186,7 +187,7 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
 app.post('/ipn_callback', accessToken, urlEncoded, function(req, res){
     console.log(`${req.body.OrderTrackingId} ipn callback`);
     //Get transaction Status
-    unirest('GET', `${process.env.BASE_URL}/api/Transactions/GetTransactionStatus?orderTrackingId=${req.body.OrderTrackingId}`)
+    unirest('GET', `${process.env.LIVE_BASE_URL}/api/Transactions/GetTransactionStatus?orderTrackingId=${req.body.OrderTrackingId}`)
     .headers({
         "Content-Type" : "application/json",
         "Accept" : "application/json",
@@ -249,7 +250,7 @@ app.get('/ConfirmPayment/:id', urlEncoded, function(req, res){
 
 //Get registered IPNs for Particular Merchant
 app.get('/RegisteredIpns', accessToken, function(req, res){
-    unirest('GET', `${process.env.BASE_URL}/api/URLSetup/GetIpnList`)
+    unirest('GET', `${process.env.LIVE_BASE_URL}/api/URLSetup/GetIpnList`)
     .headers({
         "Content-Type" : "application/json",
         "Accept" : "application/json",
