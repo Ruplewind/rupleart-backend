@@ -141,7 +141,7 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
                             "branch": "Ruple Art - Nairobi",
                             "billing_address": {
                                 "email_address": user.email,
-                                "phone_number": data.phoneNumber, // user.phoneNumber
+                                "phone_number": received.phoneNumber, // user.phoneNumber
                                 "country_code": "KE",
                                 "first_name": user.first_name,
                                 "middle_name": "",
