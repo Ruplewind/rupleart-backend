@@ -87,7 +87,8 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
         delivery_status : "pending",
         order_date : date,
         delivery_date : "",
-        min_price: req.body.minPrice
+        min_price: req.body.minPrice,
+        phoneNumber: req.body.phoneNumber
     }
 
     let TotalPrice = 0;
@@ -140,7 +141,7 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
                             "branch": "Ruple Art - Nairobi",
                             "billing_address": {
                                 "email_address": user.email,
-                                "phone_number": user.phoneNumber,
+                                "phone_number": data.phoneNumber, // user.phoneNumber
                                 "country_code": "KE",
                                 "first_name": user.first_name,
                                 "middle_name": "",
