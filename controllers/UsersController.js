@@ -20,7 +20,7 @@ app.post('/user_login', urlEncoded, function(req, res){
                     const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
                         expiresIn: '7d',
                         });
-                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber })
+                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber, firstTime: data.firstTime })
                 }else{
                     res.status(401).json('Wrong Credentials')
                 }
@@ -41,7 +41,7 @@ app.post('/user_m_login', urlEncoded, function(req, res){
                     const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
                         expiresIn: 31449600,
                         });
-                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber })
+                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber, firstTime: data.firstTime })
                 }else{
                     res.status(401).json('Wrong Credentials')
                 }
