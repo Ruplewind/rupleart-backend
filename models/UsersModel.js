@@ -6,7 +6,8 @@ let userSchema = new mongoose.Schema({
     second_name: String,
     password: String,
     phoneNumber: String,
-    accountType: String
+    accountType: String,
+    firstTime: Boolean
 })
 
 
