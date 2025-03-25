@@ -472,6 +472,16 @@ const transporter = nodemailer.createTransport({
 
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } })
 
+app.get('/get_single_products/:id', (req, res)=>{
+  ProductsModel.findOne({_id: req.params.id})
+  .then((data)=>{
+      res.status(200).json(data);
+  })
+  .catch(err => {
+      res.status(400).json('error');
+  })
+});
+
 app.get('/get_all_products', (req, res)=>{
     ProductsModel.find()
     .then((data)=>{
