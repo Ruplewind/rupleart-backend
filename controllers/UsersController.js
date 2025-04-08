@@ -12,10 +12,12 @@ let nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
 app.post('/user_login', urlEncoded, function(req, res){
-    UsersModel.findOne({$and: [{email: req.body.email},{ accountType: 'user'}]})
+    let user_email = req.body.email.replace(/\s+/g, '');
+    let user_password = req.body.password.replace(/\s+/g, '');
+    UsersModel.findOne({$and: [{email: user_email},{ accountType: 'user'}]})
     .then(data =>{
         if(data){
-            bcrypt.compare(req.body.password, data.password, function(err, result) {
+            bcrypt.compare(user_password, data.password, function(err, result) {
                 if(result){
                     const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
                         expiresIn: '7d',
@@ -33,10 +35,12 @@ app.post('/user_login', urlEncoded, function(req, res){
 });
 
 app.post('/user_m_login', urlEncoded, function(req, res){
-    UsersModel.findOne({$and: [{email: req.body.email},{ accountType: 'user'}]})
+    let user_email = req.body.email.replace(/\s+/g, '');
+    let user_password = req.body.password.replace(/\s+/g, '');
+    UsersModel.findOne({$and: [{email: user_email},{ accountType: 'user'}]})
     .then(data =>{
         if(data){
-            bcrypt.compare(req.body.password, data.password, function(err, result) {
+            bcrypt.compare(user_password, data.password, function(err, result) {
                 if(result){
                     const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
                         expiresIn: 31449600,
@@ -83,14 +87,16 @@ app.put("/update_profile", urlEncoded, verifyToken, (req, res)=>{
 });
 
 app.post('/register_user', urlEncoded, (req, res)=>{
-    UsersModel.find({$or: [{email: req.body.email},{ phoneNumber : req.body.phoneNumber}]})
+    let user_email = req.body.email.replace(/\s+/g, '');
+    let user_password = req.body.password.replace(/\s+/g, '');
+    UsersModel.find({$or: [{email: user_email},{ phoneNumber : req.body.phoneNumber}]})
         .then(data =>{
             if(data.length > 0){
                 res.status(409).json('Exists')
             }else{
-                    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+                    bcrypt.hash(user_password, saltRounds, function(err, hash) {
                         // Store hash in your password DB.
-                        UsersModel({ email: req.body.email, first_name: req.body.first_name, second_name: req.body.second_name, password: hash, phoneNumber: req.body.phoneNumber, accountType: 'user'}).save()
+                        UsersModel({ email: user_email, first_name: req.body.first_name, second_name: req.body.second_name, password: hash, phoneNumber: req.body.phoneNumber, accountType: 'user'}).save()
                         .then( data =>{
                             res.json('Added');
                         })
@@ -104,8 +110,8 @@ app.post('/register_user', urlEncoded, (req, res)=>{
 });
 
 app.put('/change_user_password', urlEncoded, verifyToken, function(req, res){
-    const current_password = req.body.current_password;
-    const new_password = req.body.new_password;
+    const current_password = req.body.current_password.replace(/\s+/g, '');
+    const new_password = req.body.new_password.replace(/\s+/g, '');
     const user_id = req.userId;
 
     UsersModel.findOne({_id: user_id})
@@ -138,8 +144,8 @@ app.put('/change_user_password', urlEncoded, verifyToken, function(req, res){
 //Add Users
 app.post('/add_admin_user', urlEncoded, verifyToken, function(req, res){
     
-    const myPlaintextPassword = req.body.password;
-    const user_master_password = req.body.master_password;
+    const myPlaintextPassword = req.body.password.replace(/\s+/g, '');
+    const user_master_password = req.body.master_password.replace(/\s+/g, '');
 
     if(master_password !== user_master_password){
         res.status(401).json("Wrong credential");
@@ -188,7 +194,7 @@ app.get('/regular_users', verifyToken, function(req, res){
 //Delete Users
 app.delete('/delete/:master_password/:id', urlEncoded, verifyToken, function(req, res){
 
-    const user_master_password = req.params.master_password;
+    const user_master_password = req.params.master_password.replace(/\s+/g, '');
 
     if(master_password !== user_master_password){
         res.status(401).json("Wrong credential");
@@ -203,10 +209,12 @@ app.delete('/delete/:master_password/:id', urlEncoded, verifyToken, function(req
 
 //Login
 app.post('/admin_login', urlEncoded, function(req, res){
-    UsersModel.findOne({$and: [{email: req.body.email},{ accountType: 'admin'}]})
+    let user_email = req.body.email.replace(/\s+/g, '');
+    let user_password = req.body.password.replace(/\s+/g, '');
+    UsersModel.findOne({$and: [{email: user_email},{ accountType: 'admin'}]})
     .then(data =>{
         if(data){
-            bcrypt.compare(req.body.password, data.password, function(err, result) {
+            bcrypt.compare(user_password, data.password, function(err, result) {
                 if(result){
                     const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
                         expiresIn: '1d',
@@ -224,8 +232,8 @@ app.post('/admin_login', urlEncoded, function(req, res){
 });
 
 app.post('/change_admin_password', urlEncoded, verifyToken, function(req, res){
-    const user_master_password = req.body.master_password;
-    const new_password = req.body.new_password;
+    const user_master_password = req.body.master_password.replace(/\s+/g, '');;
+    const new_password = req.body.new_password.replace(/\s+/g, '');;
     const user_id = req.body.user_id;
 
     if(master_password !== user_master_password){
@@ -415,7 +423,7 @@ const RESET_EMAIL_TEMPLATE  = (password) => {
 }
 
 app.post('/forgot_password', urlEncoded, (req, res)=>{
-    let email = req.body.email;
+    let email = req.body.email.replace(/\s+/g, '');
   
     UsersModel.findOne({email: email})
     .then(data => {
