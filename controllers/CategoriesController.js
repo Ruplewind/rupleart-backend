@@ -7,6 +7,7 @@ let mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const CategoriesModel = require('../models/CategoriesModel');
 const verifyToken = require('../middleware/authMiddleware');
+const ProductsModel = require('../models/ProductsModel');
 
 const urlEncoded = bodyParser.urlencoded({extended: false});
 
@@ -50,9 +51,16 @@ app.get('/get_category/:id', verifyToken, (req, res)=>{
 })
 
 app.put('/edit_category/:id', urlEncoded, verifyToken, (req, res)=>{
-    CategoriesModel.findByIdAndUpdate(req.params.id, { category: req.body.category }, { new: true})
+    CategoriesModel.findByIdAndUpdate(req.params.id, { category: req.body.category }, { new: false})
     .then(data => {
-        res.json("Success");
+        let previousCategory = data.category;
+        ProductsModel.updateMany({ type: previousCategory}, {$set : { type: req.body.category }})
+        .then(()=>{
+            res.json("Success");
+        })
+        .catch(error => {
+            res.status(500).json("Server Error. Error updating products categories.");
+        });
     })
     .catch(error => {
         res.status(500).json("Server error");
