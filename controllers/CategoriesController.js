@@ -54,7 +54,6 @@ app.put('/edit_category/:id', urlEncoded, verifyToken, (req, res)=>{
     CategoriesModel.findByIdAndUpdate(req.params.id, { category: req.body.category }, { new: false})
     .then(data => {
         let previousCategory = data.category;
-        console.log("Previous Category: "+ previousCategory);
         ProductsModel.updateMany({ type: previousCategory}, {$set : { type: req.body.category }}, {multi: true})
         .then(()=>{
             res.json("Success");
