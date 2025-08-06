@@ -14,7 +14,7 @@ const urlEncoded = bodyParser.urlencoded({extended: false});
 app.post('/add_category', urlEncoded, verifyToken, (req, res)=>{
     let category = req.body.category;
 
-    CategoriesModel.findOne({ category : category})
+    CategoriesModel.findOne({ category : category.trim()})
     .then(data => {
         if(data){
             res.status(409).json("Duplicate record")
