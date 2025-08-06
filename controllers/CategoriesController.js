@@ -51,10 +51,10 @@ app.get('/get_category/:id', verifyToken, (req, res)=>{
 })
 
 app.put('/edit_category/:id', urlEncoded, verifyToken, (req, res)=>{
-    CategoriesModel.findByIdAndUpdate(req.params.id, { category: req.body.category }, { new: false})
+    CategoriesModel.findByIdAndUpdate(req.params.id, { category: req.body.category.trim() }, { new: false})
     .then(data => {
         let previousCategory = data.category;
-        ProductsModel.updateMany({ type: previousCategory}, {$set : { type: req.body.category }}, {multi: true})
+        ProductsModel.updateMany({ type: previousCategory}, {$set : { type: req.body.category.trim() }}, {multi: true})
         .then(()=>{
             res.json("Success");
         })
