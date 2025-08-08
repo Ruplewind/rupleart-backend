@@ -559,8 +559,8 @@ app.get('/get_products/:type', (req, res)=>{
     })
 })
 
-app.post('/add_product', upload.single('image'), verifyToken, (req, res)=>{
-    let image = req.file.filename;
+app.post('/add_product', upload.array('image'), verifyToken, (req, res)=>{
+    let image = req.files ? req.files.map(file => file.filename) : []; // req.file.filename;
     let productName  = req.body.productName;
     let description = req.body.description;
     let ownedBy = req.userId;
