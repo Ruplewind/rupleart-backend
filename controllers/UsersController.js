@@ -22,7 +22,7 @@ app.post('/user_login', urlEncoded, function(req, res){
                     const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
                         expiresIn: '7d',
                         });
-                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber, firstTime: data.firstTime })
+                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, firstTime: data.firstTime })
                 }else{
                     res.status(401).json('Wrong Credentials')
                 }
@@ -45,7 +45,7 @@ app.post('/user_m_login', urlEncoded, function(req, res){
                     const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
                         expiresIn: 31449600,
                         });
-                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber, firstTime: data.firstTime })
+                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, firstTime: data.firstTime })
                 }else{
                     res.status(401).json('Wrong Credentials')
                 }
@@ -63,7 +63,7 @@ app.get("/profile", urlEncoded, verifyToken, (req, res)=>{
     UsersModel.findOne({_id: userId})
     .then(data => {
         res.json({
-            first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber
+            first_name: data.first_name, second_name: data.second_name, email: data.email
         });
     })
     .catch(err => {
@@ -76,7 +76,7 @@ app.put("/update_profile", urlEncoded, verifyToken, (req, res)=>{
     let userId = req.userId;
     let data = req.body;
 
-    UsersModel.findByIdAndUpdate({_id: userId}, { first_name: data.firstname, second_name: data.secondname, phoneNumber: data.phoneNumber }, { new:true})
+    UsersModel.findByIdAndUpdate({_id: userId}, { first_name: data.firstname, second_name: data.secondname }, { new:true})
     .then(data => {
         res.json("Success");
     })
@@ -89,14 +89,14 @@ app.put("/update_profile", urlEncoded, verifyToken, (req, res)=>{
 app.post('/register_user', urlEncoded, (req, res)=>{
     let user_email = req.body.email.replace(/\s+/g, '');
     let user_password = req.body.password.replace(/\s+/g, '');
-    UsersModel.find({$or: [{email: user_email},{ phoneNumber : req.body.phoneNumber}]})
+    UsersModel.find({email: user_email})
         .then(data =>{
             if(data.length > 0){
                 res.status(409).json('Exists')
             }else{
                     bcrypt.hash(user_password, saltRounds, function(err, hash) {
                         // Store hash in your password DB.
-                        UsersModel({ email: user_email, first_name: req.body.first_name, second_name: req.body.second_name, password: hash, phoneNumber: req.body.phoneNumber, accountType: 'user'}).save()
+                        UsersModel({ email: user_email, first_name: req.body.first_name, second_name: req.body.second_name, password: hash, accountType: 'user'}).save()
                         .then( data =>{
                             res.json('Added');
                         })
@@ -158,7 +158,7 @@ app.post('/add_admin_user', urlEncoded, verifyToken, function(req, res){
             }else{
                     bcrypt.hash(myPlaintextPassword, saltRounds, function(err, hash) {
                         // Store hash in your password DB.
-                        UsersModel({ email: req.body.email, password: hash, accountType: 'admin', first_name: req.body.first_name, second_name: req.body.second_name, phoneNumber: req.body.phoneNumber}).save()
+                        UsersModel({ email: req.body.email, password: hash, accountType: 'admin', first_name: req.body.first_name, second_name: req.body.second_name}).save()
                         .then( data =>{
                             res.json('Added');
                         })

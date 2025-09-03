@@ -87,8 +87,8 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
         delivery_status : "pending",
         order_date : date,
         delivery_date : "",
-        min_price: req.body.minPrice,
-        phoneNumber: req.body.phoneNumber
+        min_price: req.body.minPrice
+        //phoneNumber: req.body.phoneNumber
     }
 
     let TotalPrice = 0;
@@ -141,7 +141,7 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
                             "branch": "Ruple Art - Nairobi",
                             "billing_address": {
                                 "email_address": user.email,
-                                "phone_number": received.phoneNumber, // user.phoneNumber
+                                "phone_number": "",//received.phoneNumber, // user.phoneNumber
                                 "country_code": "KE",
                                 "first_name": user.first_name,
                                 "middle_name": "",
@@ -279,8 +279,8 @@ app.get('/GetAllOrders', verifyToken, function(req, res){
                             ...item, // Keep the item data
                             owner_first_name: ownerResult.first_name,
                             owner_second_name: ownerResult.second_name,
-                            owner_email : ownerResult.email,
-                            owner_phone_number : ownerResult.phoneNumber
+                            owner_email : ownerResult.email
+                            //owner_phone_number : ownerResult.phoneNumber
                         };
                     });
                 });
@@ -292,8 +292,8 @@ app.get('/GetAllOrders', verifyToken, function(req, res){
                         items: updatedItems, // Updated items with owner's details
                         first_name: userResult.first_name, 
                         second_name: userResult.second_name, 
-                        email: userResult.email, 
-                        phoneNumber: userResult.phoneNumber
+                        email: userResult.email
+                        //phoneNumber: userResult.phoneNumber
                     };
                 });
             });
@@ -338,8 +338,8 @@ app.get('/GetDeliveredOrders', verifyToken, function(req, res){
                             ...item, // Keep the item data
                             owner_first_name: ownerResult.first_name,
                             owner_second_name: ownerResult.second_name,
-                            owner_email : ownerResult.email,
-                            owner_phone_number : ownerResult.phoneNumber
+                            owner_email : ownerResult.email
+                            //owner_phone_number : ownerResult.phoneNumber
                         };
                     });
                 });
@@ -351,8 +351,8 @@ app.get('/GetDeliveredOrders', verifyToken, function(req, res){
                         items: updatedItems, // Updated items with owner's details
                         first_name: userResult.first_name, 
                         second_name: userResult.second_name, 
-                        owner_email: userResult.email, 
-                        owner_phoneNumber: userResult.phoneNumber
+                        owner_email: userResult.email
+                        //owner_phoneNumber: userResult.phoneNumber
                     };
                 });
             });
@@ -387,8 +387,8 @@ app.get('/GetPendingOrders', verifyToken, function(req, res) {
                             ...item, // Keep the item data
                             owner_first_name: ownerResult.first_name,
                             owner_second_name: ownerResult.second_name, 
-                            owner_email: userResult.email, 
-                            owner_phoneNumber: userResult.phoneNumber
+                            owner_email: userResult.email
+                            //owner_phoneNumber: userResult.phoneNumber
                         };
                     });
                 });
@@ -400,8 +400,8 @@ app.get('/GetPendingOrders', verifyToken, function(req, res) {
                         items: updatedItems, // Updated items with owner's details
                         first_name: userResult.first_name, 
                         second_name: userResult.second_name, 
-                        owner_email: userResult.email, 
-                        owner_phoneNumber: userResult.phoneNumber
+                        owner_email: userResult.email
+                        //owner_phoneNumber: userResult.phoneNumber
                     };
                 });
             });
