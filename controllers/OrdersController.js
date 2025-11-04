@@ -387,8 +387,8 @@ app.get('/GetPendingOrders', verifyToken, function(req, res) {
                             ...item, // Keep the item data
                             owner_first_name: ownerResult.first_name,
                             owner_second_name: ownerResult.second_name, 
-                            owner_email: userResult.email, 
-                            owner_phoneNumber: userResult.phoneNumber
+                            owner_email: ownerResult.email, 
+                            owner_phoneNumber: ownerResult.phoneNumber
                         };
                     });
                 });
