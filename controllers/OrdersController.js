@@ -352,7 +352,7 @@ app.get('/GetDeliveredOrders', verifyToken, function(req, res){
                         client_first_name: userResult.first_name, 
                         client_second_name: userResult.second_name, 
                         client_email: userResult.email, 
-                        client_phoneNumber: userResult.phoneNumber
+                        client_phone_number: userResult.phoneNumber
                     };
                 });
             });
@@ -401,7 +401,7 @@ app.get('/GetPendingOrders', verifyToken, function(req, res) {
                         client_first_name: userResult.first_name, 
                         client_second_name: userResult.second_name, 
                         client_email: userResult.email, 
-                        client_phoneNumber: userResult.phoneNumber
+                        client_phone_number: userResult.phoneNumber
                     };
                 });
             });
