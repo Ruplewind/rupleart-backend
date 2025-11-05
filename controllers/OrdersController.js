@@ -336,10 +336,10 @@ app.get('/GetDeliveredOrders', verifyToken, function(req, res){
                     .then(ownerResult => {
                         return {
                             ...item, // Keep the item data
-                            owner_first_name: ownerResult.first_name,
-                            owner_second_name: ownerResult.second_name,
-                            owner_email : ownerResult.email,
-                            owner_phone_number : ownerResult.phoneNumber
+                            supplier_first_name: ownerResult.first_name,
+                            supplier_second_name: ownerResult.second_name, 
+                            supplier_email: ownerResult.email, 
+                            supplier_phone_number: ownerResult.phoneNumber
                         };
                     });
                 });
@@ -385,10 +385,10 @@ app.get('/GetPendingOrders', verifyToken, function(req, res) {
                     .then(ownerResult => {
                         return {
                             ...item, // Keep the item data
-                            owner_first_name: ownerResult.first_name,
-                            owner_second_name: ownerResult.second_name, 
-                            owner_email: ownerResult.email, 
-                            owner_phoneNumber: ownerResult.phoneNumber
+                            supplier_first_name: ownerResult.first_name,
+                            supplier_second_name: ownerResult.second_name, 
+                            supplier_email: ownerResult.email, 
+                            supplier_phone_number: ownerResult.phoneNumber
                         };
                     });
                 });
