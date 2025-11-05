@@ -349,10 +349,10 @@ app.get('/GetDeliveredOrders', verifyToken, function(req, res){
                     return {
                         ...order.toObject(), // Convert the Mongoose document to a plain JavaScript object
                         items: updatedItems, // Updated items with owner's details
-                        first_name: userResult.first_name, 
-                        second_name: userResult.second_name, 
-                        owner_email: userResult.email, 
-                        owner_phoneNumber: userResult.phoneNumber
+                        client_first_name: userResult.first_name, 
+                        client_second_name: userResult.second_name, 
+                        client_email: userResult.email, 
+                        client_phoneNumber: userResult.phoneNumber
                     };
                 });
             });
@@ -398,10 +398,10 @@ app.get('/GetPendingOrders', verifyToken, function(req, res) {
                     return {
                         ...order.toObject(), // Convert the Mongoose document to a plain JavaScript object
                         items: updatedItems, // Updated items with owner's details
-                        first_name: userResult.first_name, 
-                        second_name: userResult.second_name, 
-                        owner_email: userResult.email, 
-                        owner_phoneNumber: userResult.phoneNumber
+                        client_first_name: userResult.first_name, 
+                        client_second_name: userResult.second_name, 
+                        client_email: userResult.email, 
+                        client_phoneNumber: userResult.phoneNumber
                     };
                 });
             });
