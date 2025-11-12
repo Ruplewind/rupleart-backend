@@ -572,32 +572,38 @@ app.post('/add_product', upload.array('image'), verifyToken, (req, res)=>{
         image, type, productName, price, description, ownedBy, size, availability : true
     }
 
-    // Find the last productId and increment it
-    const lastProduct = ProductsModel.findOne().sort({ productId: -1 }).limit(1);
-    let nextId = 1000; // starting point if no product exists yet
-    if (lastProduct && lastProduct.productId) {
-      nextId = lastProduct.productId + 1;
-    }
+    let nextId = 1000;
 
-    UsersModel.findOne({ _id: ownedBy})
-    .then(user => {
-        let approvalStatus = 0;
-
-        if(user.accountType == 'admin'){
-            approvalStatus = 1;
-        }
-
-        ProductsModel({...data, approvalStatus: approvalStatus, productId : nextId}).save()
-        .then(()=>{
-            res.status(200).json('success');
-        })
-        .catch(err => {
-            res.status(400).json('failed');
-        })
+    ProductsModel.findOne().sort({ productId: -1 }).limit(1)
+    .then(lastProduct => {
+      if (lastProduct) {
+          nextId = lastProduct.productId + 1;
+      } else {
+        nextId = 1000;
+      }
     })
-    .catch(err => {
-        res.status(500).json("Internal Server Error");
-    });    
+    .then(()=>{
+          UsersModel.findOne({ _id: ownedBy})
+          .then(user => {
+              let approvalStatus = 0;
+
+              if(user.accountType == 'admin'){
+                  approvalStatus = 1;
+              }
+
+              ProductsModel({...data, approvalStatus: approvalStatus, productId : nextId}).save()
+              .then(()=>{
+                  res.status(200).json('success');
+              })
+              .catch(err => {
+                  res.status(400).json('failed');
+              })
+          })
+          .catch(err => {
+              res.status(500).json("Internal Server Error");
+          });
+    })
+    .catch(err => console.error(err));       
 })
 
 // app.put('/assign_product_ids', async (req, res) => {
