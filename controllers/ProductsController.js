@@ -572,6 +572,13 @@ app.post('/add_product', upload.array('image'), verifyToken, (req, res)=>{
         image, type, productName, price, description, ownedBy, size, availability : true
     }
 
+    // Find the last productId and increment it
+    const lastProduct = ProductsModel.findOne().sort({ productId: -1 }).limit(1);
+    let nextId = 1000; // starting point if no product exists yet
+    if (lastProduct && lastProduct.productId) {
+      nextId = lastProduct.productId + 1;
+    }
+
     UsersModel.findOne({ _id: ownedBy})
     .then(user => {
         let approvalStatus = 0;
@@ -580,7 +587,7 @@ app.post('/add_product', upload.array('image'), verifyToken, (req, res)=>{
             approvalStatus = 1;
         }
 
-        ProductsModel({...data, approvalStatus: approvalStatus}).save()
+        ProductsModel({...data, approvalStatus: approvalStatus, productId : nextId}).save()
         .then(()=>{
             res.status(200).json('success');
         })
@@ -592,6 +599,33 @@ app.post('/add_product', upload.array('image'), verifyToken, (req, res)=>{
         res.status(500).json("Internal Server Error");
     });    
 })
+
+// app.put('/assign_product_ids', async (req, res) => {
+//   try {
+//     // Fetch all products (sorted alphabetically by _id for consistency)
+//     const products = await ProductsModel.find({}).sort({ _id: 1 });
+
+//     if (products.length === 0) {
+//       return res.status(200).json("No products found.");
+//     }
+
+//     let counter = 1000; // starting ID
+//     let updatedCount = 0;
+
+//     for (const product of products) {
+//       product.productId = counter;
+//       await product.save();
+//       counter++;
+//       updatedCount++;
+//     }
+
+//     res.status(200).json(`${updatedCount} products updated with product IDs.`);
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json("Internal Server Error");
+//   }
+// });
 
 app.put('/edit_product/:id', upload.array('image'), verifyToken, async (req, res)=>{
     let id = req.params.id;
