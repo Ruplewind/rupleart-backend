@@ -310,7 +310,6 @@ app.get('/GetAllOrders', verifyToken, function(req, res){
     });
 });
 
-
 //Get My Orders
 app.get('/GetMyOrders', verifyToken, function(req, res){
     OrdersModel.find({$and : [{ completion_status: "Completed", user_id: req.userId}]})
@@ -370,7 +369,6 @@ app.get('/GetDeliveredOrders', verifyToken, function(req, res){
     });
 });
 
-
 //Get Orders Pending Delivery
 app.get('/GetPendingOrders', verifyToken, function(req, res) {
     OrdersModel.find({ $and: [{ delivery_status: 'pending' }, { completion_status: 'Completed' }] })
@@ -419,7 +417,63 @@ app.get('/GetPendingOrders', verifyToken, function(req, res) {
     });
 });
 
+//Get Orders In Transit
+app.get('/GetTransitOrders', verifyToken, function(req, res) {
+    OrdersModel.find({ $and: [{ delivery_status: 'transit' }, { completion_status: 'Completed' }] })
+    .then(data => {
+        let promises = data.map(order => {
+            // Find the user who placed the order
+            return UsersModel.findOne({ _id: order.user_id })
+            .then(userResult => {
+                // Map through each item in the order to find the item's owner details
+                let itemPromises = order.items.map(item => {
+                    return UsersModel.findOne({ _id: item.ownedBy })
+                    .then(ownerResult => {
+                        return {
+                            ...item, // Keep the item data
+                            supplier_first_name: ownerResult.first_name,
+                            supplier_second_name: ownerResult.second_name, 
+                            supplier_email: ownerResult.email, 
+                            supplier_phone_number: ownerResult.phoneNumber
+                        };
+                    });
+                });
 
+                // Wait for all the item promises to resolve
+                return Promise.all(itemPromises).then(updatedItems => {
+                    return {
+                        ...order.toObject(), // Convert the Mongoose document to a plain JavaScript object
+                        items: updatedItems, // Updated items with owner's details
+                        client_first_name: userResult.first_name, 
+                        client_second_name: userResult.second_name, 
+                        client_email: userResult.email, 
+                        client_phone_number: userResult.phoneNumber
+                    };
+                });
+            });
+        });
+
+        // Wait for all the promises to resolve
+        return Promise.all(promises);
+    })
+    .then(newData => {
+        res.json(newData);
+    })
+    .catch(err => {
+        console.log(err);
+        res.status(500).send("Error fetching pending orders");
+    });
+});
+
+//Update Orders On Transit
+app.put('/update_transit/:id', urlEncoded, verifyToken, function(req, res){
+    let date = getTodayDate(); 
+    OrdersModel.findByIdAndUpdate(req.params.id,{delivery_status:'transit', delivery_date: date }, {new: true})
+    .then(data => {
+        res.json('success')
+    })
+    .catch(err => console.log('error'))
+});
 
 //Update Orders On Delivery
 app.put('/update_delivery/:id', urlEncoded, verifyToken, function(req, res){
