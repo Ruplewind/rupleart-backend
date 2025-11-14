@@ -5,6 +5,7 @@ let orderSchema =  new mongoose.Schema({
     user_id: String,
     items : [{}],
     completion_status: String,
+    confirmation_code: String,
     deliveryLocation: String,
     delivery_status: String,
     delivery_cost: Number,
