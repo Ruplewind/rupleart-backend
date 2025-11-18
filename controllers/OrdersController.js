@@ -486,7 +486,7 @@ app.put('/update_delivery/:id', urlEncoded, verifyToken, function(req, res){
 });
 
 // Cancel Order
-app.post('/cancel_order/:id', urlEncoded, verifyToken, accessToken, (req, res)=>{
+app.get('/cancel_order/:id', verifyToken, accessToken, (req, res)=>{
     const initiator_id = req.userId;
 
     OrdersModel.findById(req.params.id)
@@ -514,7 +514,7 @@ app.post('/cancel_order/:id', urlEncoded, verifyToken, accessToken, (req, res)=>
                     "confirmation_code": order.confirmation_code,
                     "amount": parseFloat(grandTotal),
                     "username": `${user.first_name} ${user.second_name}`,
-                    "remarks": req.body.reason
+                    "remarks": "Order Cancelled"
                 })
                 .end(response => {
                     if (response.error) throw new Error(response.error);
@@ -536,7 +536,7 @@ app.post('/cancel_order/:id', urlEncoded, verifyToken, accessToken, (req, res)=>
     })
     .catch(err => {
         res.status(500).json("Failed. Try again!")
-    })    
+    })
 });
 
 module.exports = app;
