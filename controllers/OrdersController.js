@@ -485,4 +485,57 @@ app.put('/update_delivery/:id', urlEncoded, verifyToken, function(req, res){
     .catch(err => console.log('error'))
 });
 
+// Cancel Order
+app.post('/cancel_order/:id', urlEncoded, verifyToken, accessToken, (req, res)=>{
+    const initiator_id = req.userId;
+
+    OrdersModel.findById(req.params.id)
+    .then((order)=>{
+        UsersModel.findById(initiator_id)
+        .then( user =>{
+            if(order.user_id != initiator_id || user.accountType != "admin")
+            {
+                res.status(401).json("Unauthorized");
+            }else if(order.delivery_status != "pending")
+            {
+                res.status(400).json("Order Cannot be cancelled.")
+            }
+            else
+            {
+                const grandTotal = order.total_price + order.delivery_cost;
+                unirest('POST', `${process.env.LIVE_BASE_URL}/api/URLSetup/RegisterIPN`)
+                .headers({
+                    "Content-Type" : "application/json",
+                    "Accept" : "application/json",
+                    "Authorization": "Bearer " + req.access_token
+                })
+                .send({
+                    "confirmation_code": order.confirmation_code,
+                    "amount": parseFloat(grandTotal),
+                    "username": `${user.first_name} ${user.second_name}`,
+                    "remarks": req.body.reason
+                })
+                .end(response => {
+                    if (response.error) throw new Error(response.error);
+                    OrdersModel.findByIdAndUpdate(req.params.id, { delivery_status: "cancelled" }, { new : true})
+                    .then((data)=>{
+                        console.log("----- Payment Refund Initiated ------")
+                        console.log(response.raw_body);
+                        res.json("Success");
+                    })
+                    .catch(err => {
+                        res.status(500).json("Failed. Try again!")
+                    })
+                });
+            }
+        })
+        .catch(err => {
+            res.status(500).json("Failed. Try again!")
+        })
+    })
+    .catch(err => {
+        res.status(500).json("Failed. Try again!")
+    })    
+});
+
 module.exports = app;

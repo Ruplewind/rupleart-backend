@@ -753,9 +753,30 @@ app.post('/approve_product/:id', urlEncoded, verifyToken, (req, res)=>{
 })
 
 app.post('/change_availability/:id', urlEncoded, verifyToken, (req, res)=>{
-    ProductsModel.findByIdAndUpdate(req.params.id, { availability: req.body.value }, {new: true})
-    .then(()=>{
-        res.status(200).json('success');
+    const initiator_id = req.userId;
+    
+    ProductsModel.findById(req.params.id)
+    .then((product)=>{
+        UsersModel.findById(initiator_id)
+        .then(user => {
+            if(initiator_id != product.ownedBy || user.accountType != "admin") // Check if initiator owns product or is an admin
+            {
+              res.status(401).json("Unauthorized");
+            }
+            else
+            {
+              ProductsModel.findByIdAndUpdate(req.params.id, { availability: req.body.value }, {new: true})
+              .then(()=>{
+                  res.status(200).json('success');
+              })
+              .catch(err => {
+                  res.status(500).json('failed');
+              })
+            }
+        })
+        .catch(err => {
+            res.status(400).json('failed');
+        })
     })
     .catch(err => {
         res.status(400).json('failed');
