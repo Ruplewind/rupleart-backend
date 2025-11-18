@@ -513,7 +513,7 @@ app.get('/cancel_order/:id', verifyToken, accessToken, (req, res)=>{
                 })
                 .send({
                     "confirmation_code": order.confirmation_code,
-                    "amount": parseFloat(grandTotal),
+                    "amount": parseFloat(grandTotal).toFixed(2),
                     "username": `${user.first_name} ${user.second_name}`,
                     "remarks": "Order Cancelled"
                 })
