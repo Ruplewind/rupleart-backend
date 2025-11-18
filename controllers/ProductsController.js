@@ -493,7 +493,17 @@ app.get('/get_all_products', (req, res)=>{
 });
 
 app.get('/get_approved_products', (req, res)=>{
-    ProductsModel.find({ approvalStatus: 1})
+    ProductsModel.find({$and: [{ approvalStatus: 1}, {availability: true}]})
+    .then((data)=>{
+        res.status(200).json(data);
+    })
+    .catch(err => {
+        res.status(400).json('error');
+    })
+});
+
+app.get('/get_all_approved_products', (req, res)=>{
+    ProductsModel.find({ approvalStatus: 1 })
     .then((data)=>{
         res.status(200).json(data);
     })
