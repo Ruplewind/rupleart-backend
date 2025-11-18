@@ -754,12 +754,12 @@ app.post('/approve_product/:id', urlEncoded, verifyToken, (req, res)=>{
 
 app.post('/change_availability/:id', urlEncoded, verifyToken, (req, res)=>{
     const initiator_id = req.userId;
-    
+
     ProductsModel.findById(req.params.id)
     .then((product)=>{
         UsersModel.findById(initiator_id)
         .then(user => {
-            if(initiator_id != product.ownedBy || user.accountType != "admin") // Check if initiator owns product or is an admin
+            if(initiator_id != product.ownedBy && user.accountType != "admin") // Check if initiator owns product or is an admin
             {
               res.status(401).json("Unauthorized");
             }

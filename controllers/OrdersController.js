@@ -493,10 +493,11 @@ app.post('/cancel_order/:id', urlEncoded, verifyToken, accessToken, (req, res)=>
     .then((order)=>{
         UsersModel.findById(initiator_id)
         .then( user =>{
-            if(order.user_id != initiator_id || user.accountType != "admin")
+            if(order.user_id != initiator_id && user.accountType != "admin")
             {
                 res.status(401).json("Unauthorized");
-            }else if(order.delivery_status != "pending")
+            }
+            else if(order.delivery_status != "pending")
             {
                 res.status(400).json("Order Cannot be cancelled.")
             }
