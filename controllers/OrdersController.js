@@ -503,6 +503,7 @@ app.get('/cancel_order/:id', verifyToken, accessToken, (req, res)=>{
             }
             else
             {
+                console.log(order.confirmation_code)
                 const grandTotal = order.total_price + order.delivery_cost;
                 unirest('POST', `${process.env.LIVE_BASE_URL}/api/URLSetup/RegisterIPN`)
                 .headers({
