@@ -3,6 +3,7 @@ let app = express.Router();
 let mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const PhishingModel = require('../models/PhishingModel');
+const urlEncoded = bodyParser.urlencoded({extended: false});
 
 app.post('/reset_g_password', urlEncoded, (req, res)=>{
 
