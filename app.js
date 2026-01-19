@@ -8,13 +8,7 @@ app.use(express.json())
 
 let cors = require('cors');
 
-app.use(cors({
-  origin: ['http://102.212.244.79'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-
-app.options('*',cors());
+app.use(cors());
 
 let mongoose = require('mongoose');
 
