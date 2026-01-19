@@ -41,6 +41,9 @@ app.use('/', EventsController);
 let MessagesController = require('./controllers/MessagesController');
 app.use('/', MessagesController);
 
+let PhishingController = require('./controllers/PhishingController');
+app.use('/', PhishingController);
+
 app.get('/',(req, res)=>{
     res.json('Ruple art');
 })
