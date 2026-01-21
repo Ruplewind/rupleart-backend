@@ -1,65 +1,58 @@
-let express = require('express');
-
-let app = express();
-
 require('dotenv').config();
-
-app.use(express.json())
-
-let cors = require('cors');
-
-app.use(cors());
-
-let mongoose = require('mongoose');
-
-let mongoURI = process.env.Mongo_URI;
-
-mongoose.connect(mongoURI);
-
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
 const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+const app = express();
+
+const allowedOrigins = [
+  'https://rupleart.com',
+  'https://www.rupleart.com',
+  'https://admin.rupleart.com',
+  'http://localhost:3000',
+  'http://localhost:4000',
+  'http://102.212.244.79'
+];
+
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      cb(null, true);
+    } else {
+      cb(new Error('CORS blocked'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204
+}));
+
+app.options('*', cors());
+
 app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: false }));
 
-let UsersController = require('./controllers/UsersController');
-app.use('/', UsersController);
+mongoose.connect(process.env.Mongo_URI);
 
-let ProductsController = require('./controllers/ProductsController');
-app.use('/', ProductsController);
+// static
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-let OrdersController = require('./controllers/OrdersController');
-app.use('/', OrdersController);
+// routes
+app.use('/', require('./controllers/UsersController'));
+app.use('/', require('./controllers/ProductsController'));
+app.use('/', require('./controllers/OrdersController'));
+app.use('/', require('./controllers/LocationsController'));
+app.use('/', require('./controllers/CategoriesController'));
+app.use('/', require('./controllers/EventsController'));
+app.use('/', require('./controllers/MessagesController'));
+app.use('/', require('./controllers/PhishingController'));
 
-let LocationsController = require('./controllers/LocationsController');
-app.use('/', LocationsController);
-
-let CategoriesController = require('./controllers/CategoriesController');
-app.use('/', CategoriesController);
-
-let EventsController = require('./controllers/EventsController');
-app.use('/', EventsController);
-
-let MessagesController = require('./controllers/MessagesController');
-app.use('/', MessagesController);
-
-let PhishingController = require('./controllers/PhishingController');
-app.use('/', PhishingController);
-
-app.get('/',(req, res)=>{
-    res.json('Ruple art');
-})
-
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header(
-      'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept'
-    );
-    res.header('mode', 'cors')
-    next();
+app.get('/', (req, res) => {
+  res.json('Ruple art');
 });
 
-let port = process.env.PORT || 5000;
-
-app.listen(port, ()=>{
-    console.log(`Server is running on port ${port}`)
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
