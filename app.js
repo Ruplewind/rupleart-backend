@@ -10,6 +10,7 @@ const allowedOrigins = [
   'https://rupleart.com',
   'https://www.rupleart.com',
   'https://admin.rupleart.com',
+  "https://goodwin.site",
   'http://localhost:3000',
   'http://localhost:4000',
   'http://102.212.244.79'
