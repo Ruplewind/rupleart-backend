@@ -7,7 +7,8 @@ let userSchema = new mongoose.Schema({
     password: String,
     phoneNumber: String,
     accountType: String,
-    firstTime: Boolean
+    firstTime: Boolean,
+    referalCode: String,
 })
 
 
