@@ -89,7 +89,7 @@ app.put("/update_profile", urlEncoded, verifyToken, (req, res)=>{
 app.post('/register_user', urlEncoded, (req, res)=>{
     let user_email = req.body.email.replace(/\s+/g, '');
     let user_password = req.body.password.replace(/\s+/g, '');
-    let referalCode = req.body.referalCode;
+    let referralCode = req.body.referralCode;
     UsersModel.find({$or: [{email: user_email},{ phoneNumber : req.body.phoneNumber}]})
         .then(data =>{
             if(data.length > 0){
@@ -97,7 +97,7 @@ app.post('/register_user', urlEncoded, (req, res)=>{
             }else{
                     bcrypt.hash(user_password, saltRounds, function(err, hash) {
                         // Store hash in your password DB.
-                        UsersModel({ email: user_email, first_name: req.body.first_name, second_name: req.body.second_name, password: hash, phoneNumber: req.body.phoneNumber, referalCode: referalCode, accountType: 'user'}).save()
+                        UsersModel({ email: user_email, first_name: req.body.first_name, second_name: req.body.second_name, password: hash, phoneNumber: req.body.phoneNumber, referralCode: referralCode, accountType: 'user'}).save()
                         .then( data =>{
                             res.json('Added');
                         })
