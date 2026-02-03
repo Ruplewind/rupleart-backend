@@ -470,4 +470,37 @@ app.get('/token_validity', verifyToken, (req, res)=>{
     res.status(200).json("Valid");
 })
 
+app.get('/referral_stats', verifyToken, async (req, res) => {
+  try {
+    const stats = await UsersModel.aggregate([
+      {
+        $match: {
+          referralCode: { $ne: null } // exclude null
+        }
+      },
+      {
+        $group: {
+          _id: '$referralCode',
+          totalUsers: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          referralCode: '$_id',
+          totalUsers: 1
+        }
+      },
+      {
+        $sort: { totalUsers: -1 } // most users first
+      }
+    ]);
+
+    res.status(200).json(stats);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = app
