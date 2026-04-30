@@ -13,7 +13,8 @@ const allowedOrigins = [
   "https://goodwin.site",
   'http://localhost:3000',
   'http://localhost:4000',
-  'http://102.212.244.79'
+  'http://102.212.244.79',
+  'https://pay.pesapal.com'
 ];
 
 app.use(cors({
