@@ -115,8 +115,11 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
             received.delivery_cost = delivery_cost;
             received.amount_paid = received.min_price;
             const tax = (received.total_price + received.delivery_cost) * TAX_RATE;
-
+            console.log("tax: " + tax);
+            
             const grandTotal = received.total_price + received.delivery_cost + tax;
+
+            console.log("Grand Total: " + grandTotal);
 
             if(received.min_price < grandTotal){
                 return res.status(400).json("Min price is invalid");
