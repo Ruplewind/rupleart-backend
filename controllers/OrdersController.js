@@ -67,6 +67,7 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 //Submit Order Request
 app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
     let date = getTodayDate();
+    const TAX_RATE = 0.015;
 
     // Validate email
     if (!emailRegex.test(req.body.email)) {
@@ -74,9 +75,9 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
     }
 
     // Validate phone number
-    // if (req.body.phoneNumber && !phoneRegex.test(req.body.phoneNumber)) {
-    //     return res.status(400).json("Invalid phone number");
-    // }
+    if (req.body.phoneNumber && !phoneRegex.test(req.body.phoneNumber)) {
+        return res.status(400).json("Invalid phone number");
+    }
 
     let received = {
         OrderTrackingId : "",
@@ -87,6 +88,7 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
         delivery_status : "pending",
         order_date : date,
         delivery_date : "",
+        tax: req.tax,
         min_price: req.body.minPrice,
         phoneNumber: req.body.phoneNumber
     }
@@ -112,8 +114,9 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
             received.total_price = TotalPrice;
             received.delivery_cost = delivery_cost;
             received.amount_paid = received.min_price;
+            const tax = (received.total_price + received.delivery_cost) * TAX_RATE;
 
-            const grandTotal = received.total_price + received.delivery_cost;
+            const grandTotal = received.total_price + received.delivery_cost + tax;
 
             if(received.min_price < grandTotal){
                 return res.status(400).json("Min price is invalid");
