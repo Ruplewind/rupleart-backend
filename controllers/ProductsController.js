@@ -665,8 +665,17 @@ app.put('/edit_product/:id', upload.array('image'), verifyToken, async (req, res
     let price = req.body.price;
     let size = req.body.size;
 
+    let rawColors = req.body.colors
+        ? (Array.isArray(req.body.colors) ? req.body.colors : [req.body.colors])
+        : [];
+    let colors = rawColors.filter(c => AVAILABLE_COLORS.includes(c));
+
+    if (colors.length === 0) {
+        return res.status(400).json('At least one valid color is required');
+    }
+
     let data = {
-      type, productName, price, description, size, approvalStatus : 0
+      type, productName, price, description, size, colors, approvalStatus : 0
     }
 
     const incomingImages = req.body.image
