@@ -569,6 +569,11 @@ app.get('/get_products/:type', (req, res)=>{
     })
 })
 
+const AVAILABLE_COLORS = [
+  'Black', 'White', 'Grey', 'Red', 'Orange', 'Yellow',
+  'Green', 'Blue', 'Navy', 'Purple', 'Pink', 'Brown', 'Beige', 'Gold', 'Silver'
+];
+
 app.post('/add_product', upload.array('image'), verifyToken, (req, res)=>{
     let image = req.files ? req.files.map(file => file.filename) : [];
     let productName  = req.body.productName;
@@ -578,8 +583,17 @@ app.post('/add_product', upload.array('image'), verifyToken, (req, res)=>{
     let price = req.body.price;
     let size = req.body.size;
 
+    let rawColors = req.body.colors
+        ? (Array.isArray(req.body.colors) ? req.body.colors : [req.body.colors])
+        : [];
+    let colors = rawColors.filter(c => AVAILABLE_COLORS.includes(c));
+
+    if (colors.length === 0) {
+        return res.status(400).json('At least one valid color is required');
+    }
+
     let data = {
-        image, type, productName, price, description, ownedBy, size, availability : true
+        image, type, productName, price, description, ownedBy, size, colors, availability : true
     }
 
     let nextId = 1000;

@@ -9,6 +9,7 @@ let productsSchema = new mongoose.Schema({
     type: String,
     price: Number,
     size: String,
+    colors: [String],
     approvalStatus: Number,
     availability: Boolean,
     disapproval_reason: String
