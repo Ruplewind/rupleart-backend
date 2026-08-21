@@ -588,9 +588,9 @@ app.post('/add_product', upload.array('image'), verifyToken, (req, res)=>{
         : [];
     let colors = rawColors.filter(c => AVAILABLE_COLORS.includes(c));
 
-    if (colors.length === 0) {
-        return res.status(400).json('At least one valid color is required');
-    }
+    // if (colors.length === 0) {
+    //     return res.status(400).json('At least one valid color is required');
+    // }
 
     let data = {
         image, type, productName, price, description, ownedBy, size, colors, availability : true
@@ -670,9 +670,9 @@ app.put('/edit_product/:id', upload.array('image'), verifyToken, async (req, res
         : [];
     let colors = rawColors.filter(c => AVAILABLE_COLORS.includes(c));
 
-    if (colors.length === 0) {
-        return res.status(400).json('At least one valid color is required');
-    }
+    // if (colors.length === 0) {
+    //     return res.status(400).json('At least one valid color is required');
+    // }
 
     let data = {
       type, productName, price, description, size, colors, approvalStatus : 0
