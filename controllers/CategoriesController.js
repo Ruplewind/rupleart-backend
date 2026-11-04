@@ -11,15 +11,18 @@ const ProductsModel = require('../models/ProductsModel');
 
 const urlEncoded = bodyParser.urlencoded({extended: false});
 
-app.post('/add_category', urlEncoded, verifyToken, (req, res)=>{
-    let category = req.body.category;
+const toBool = (v) => v === true || v === 'true';
 
-    CategoriesModel.findOne({ category : category.trim()})
+app.post('/add_category', urlEncoded, verifyToken, (req, res)=>{
+    let category = req.body.category.trim();
+    const requiresRecipientDetails = toBool(req.body.requiresRecipientDetails);
+
+    CategoriesModel.findOne({ category })
     .then(data => {
         if(data){
             res.status(409).json("Duplicate record")
         }else{
-            CategoriesModel({ category }).save()
+            CategoriesModel({ category, requiresRecipientDetails }).save()
             .then(()=>{
                 res.json("Success");
             })
@@ -51,10 +54,17 @@ app.get('/get_category/:id', verifyToken, (req, res)=>{
 })
 
 app.put('/edit_category/:id', urlEncoded, verifyToken, (req, res)=>{
-    CategoriesModel.findByIdAndUpdate(req.params.id, { category: req.body.category.trim() }, { new: false})
+    const newName = req.body.category.trim();
+    const update = { category: newName };
+    // Only touch the flag if the admin sent it, so older admin clients don't reset it
+    if (req.body.requiresRecipientDetails !== undefined) {
+        update.requiresRecipientDetails = toBool(req.body.requiresRecipientDetails);
+    }
+
+    CategoriesModel.findByIdAndUpdate(req.params.id, update, { new: false})
     .then(data => {
         let previousCategory = data.category;
-        ProductsModel.updateMany({ type: previousCategory}, {$set : { type: req.body.category.trim() }}, {multi: true})
+        ProductsModel.updateMany({ type: previousCategory}, {$set : { type: newName }}, {multi: true})
         .then(()=>{
             res.json("Success");
         })

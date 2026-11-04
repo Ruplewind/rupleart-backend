@@ -9,6 +9,7 @@ const unirest = require('unirest');
 const LocationsModel = require('../models/LocationsModel');
 const verifyToken = require('../middleware/authMiddleware');
 const UsersModel = require('../models/UsersModel');
+const CategoriesModel = require('../models/CategoriesModel');
 
 function accessToken(req, res, next){
     unirest('POST', `${process.env.LIVE_BASE_URL}/api/Auth/RequestToken`)
@@ -64,8 +65,62 @@ app.get('/RegisterIpn', accessToken, function(req, res){
 const phoneRegex = /^0[0-9]{9}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Flowers need a recipient and a same-day window, so mixing them with artworks
+// (which ship to the buyer's own location) is blocked. Set to true to allow it.
+const ALLOW_MIXED_CARTS = false;
+const MAX_NOTE_LENGTH = 250;
+// Optional: hour (0-23, Nairobi time) after which same-day is refused, e.g. SAME_DAY_CUTOFF_HOUR=14
+const SAME_DAY_CUTOFF_HOUR = parseInt(process.env.SAME_DAY_CUTOFF_HOUR, 10);
+
+const toBool = (v) => v === true || v === 'true';
+
+function nairobiHour() {
+    return parseInt(new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Africa/Nairobi', hour: '2-digit', hourCycle: 'h23'
+    }).format(new Date()), 10);
+}
+
+// Returns { error } or { value } with cleaned data
+function buildFlowerDetails(d) {
+    if (!d || typeof d !== 'object') return { error: "Delivery details are required for flower orders" };
+
+    const sameDay = toBool(d.sameDay);
+    const recipientName = (d.recipientName || '').trim();
+    const recipientPhone = (d.recipientPhone || '').trim();
+    const recipientAddress = (d.recipientAddress || '').trim();
+    const note = (d.note || '').trim();
+    const preferredDate = (d.preferredDate || '').trim();
+
+    if (!recipientName) return { error: "Recipient name is required" };
+    if (!phoneRegex.test(recipientPhone)) return { error: "Invalid recipient phone number" };
+    if (recipientAddress.length < 5) return { error: "Delivery address is required" };
+    if (note.length > MAX_NOTE_LENGTH) return { error: `Note must be ${MAX_NOTE_LENGTH} characters or fewer` };
+    if (!toBool(d.acknowledgedAvailability)) {
+        return { error: "Please confirm the recipient will be available to receive the delivery" };
+    }
+    if (preferredDate && !/^\d{4}-\d{2}-\d{2}$/.test(preferredDate)) {
+        return { error: "Invalid preferred delivery date" };
+    }
+    if (sameDay && !isNaN(SAME_DAY_CUTOFF_HOUR) && nairobiHour() >= SAME_DAY_CUTOFF_HOUR) {
+        return { error: "Same-day delivery is no longer available for today. Please choose another day." };
+    }
+
+    return {
+        value: {
+            sameDay,
+            preferredDate: sameDay ? '' : preferredDate,
+            recipientName,
+            recipientPhone,
+            recipientAddress,
+            note,
+            acknowledgedAvailability: true,
+        }
+    };
+}
+
 //Submit Order Request
-app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
+//Submit Order Request
+app.post('/Checkout', urlEncoded, accessToken, verifyToken, async function(req, res){
     let date = getTodayDate();
     const TAX_RATE = 0.015;
 
@@ -93,98 +148,109 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, function(req, res){
         phoneNumber: req.body.phoneNumber
     }
 
-    let TotalPrice = 0;
-    let location =  received.deliveryLocation;
+    try {
+        const locationData = await LocationsModel.findById(received.deliveryLocation);
+        if (!locationData) return res.status(400).json("Invalid delivery location");
+        const delivery_cost = locationData.price;
 
-    LocationsModel.findById(location)
-    .then(locationData => {
-        let delivery_cost = locationData.price;
-        let promises = received.items.map( item => {
-            return ProductsModel.findOne({ _id : item._id })
-            .then(response => {
-                if(item.quantity < 1){
-                    TotalPrice = TotalPrice + ( response.price * 1);
-                }else{
-                    TotalPrice = TotalPrice + ( response.price * item.quantity);
-                }
-            })
+        // Look up every product once (prices come from the DB, never the client)
+        const lines = await Promise.all(received.items.map(async (item) => {
+            const product = await ProductsModel.findOne({ _id: item._id });
+            if (!product) return null;
+            return { product, qty: item.quantity < 1 ? 1 : item.quantity };
+        }));
+        if (lines.some(l => l === null)) {
+            return res.status(400).json("One or more products no longer exist");
+        }
+
+        const TotalPrice = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
+
+        // Which of these products belong to a category that needs recipient details?
+        const types = [...new Set(lines.map(l => l.product.type))];
+        const flowerCats = await CategoriesModel.find({
+            category: { $in: types },
+            requiresRecipientDetails: true
+        });
+        const flowerTypes = new Set(flowerCats.map(c => c.category));
+
+        const flowerLines = lines.filter(l => flowerTypes.has(l.product.type));
+        const hasFlowers = flowerLines.length > 0;
+
+        if (hasFlowers) {
+            if (!ALLOW_MIXED_CARTS && flowerLines.length !== lines.length) {
+                return res.status(400).json("Flowers must be ordered separately from other items");
+            }
+            const result = buildFlowerDetails(req.body.flowerDetails);
+            if (result.error) return res.status(400).json(result.error);
+
+            received.hasFlowers = true;
+            received.flowerDelivery = result.value;
+        }
+
+        received.total_price = TotalPrice;
+        received.delivery_cost = delivery_cost;
+        received.amount_paid = received.min_price;
+
+        const tax = (received.total_price + received.delivery_cost) * TAX_RATE;
+        const grandTotal = received.total_price + received.delivery_cost + tax;
+
+        if(received.min_price < grandTotal){
+            return res.status(400).json("Min price is invalid");
+        }
+
+        const user = await UsersModel.findOne({ _id: received.user_id });
+        const data = await OrdersModel(received).save();
+
+        unirest('POST', `${process.env.LIVE_BASE_URL}/api/Transactions/SubmitOrderRequest`)
+        .headers({
+            'Content-Type':'application/json',
+            'Accept':'application/json',
+            'Authorization':'Bearer ' + req.access_token
         })
-        Promise.all(promises)
-        .then(() => {
-            received.total_price = TotalPrice;
-            received.delivery_cost = delivery_cost;
-            received.amount_paid = received.min_price;
-            
-            const tax = (received.total_price + received.delivery_cost) * TAX_RATE;
-            const grandTotal = received.total_price + received.delivery_cost + tax;
-
-            if(received.min_price < grandTotal){
-                return res.status(400).json("Min price is invalid");
-            }else{
-                UsersModel.findOne({ _id: received.user_id})
-                .then(user => {
-                    OrdersModel(received).save()
-                    .then(data => {
-            
-                        unirest('POST', `${process.env.LIVE_BASE_URL}/api/Transactions/SubmitOrderRequest`)
-                        .headers({
-                            'Content-Type':'application/json',
-                            'Accept':'application/json',
-                            'Authorization':'Bearer ' + req.access_token
-                        })
-                        .send({
-                            "id": data._id, //order id
-                            "currency": "KES",
-                            "amount":  received.min_price,
-                            "description": "Payment for Artworks",
-                            "callback_url": process.env.CLIENT_URL +  "/confirm",
-                            "cancellation_url": process.env.CLIENT_URL + "/cancel", //Replace with frontend failed Page URL
-                            "redirect_mode": "",
-                            "notification_id": process.env.IPN_ID,
-                            "branch": "Ruple Art - Nairobi",
-                            "billing_address": {
-                                "email_address": user.email,
-                                "phone_number": received.phoneNumber, // user.phoneNumber
-                                "country_code": "KE",
-                                "first_name": user.first_name,
-                                "middle_name": "",
-                                "last_name": user.second_name,
-                                "line_1": "",
-                                "line_2": "",
-                                "city": "",
-                                "state": "",
-                                "postal_code": "",
-                                "zip_code": ""
-                            }
-                        })
-                        .end(response =>{
-                            console.log(response.error)
-                            debugger;
-                            if (response.error) throw new Error(response.error);
-            
-                            //Update Order with tracking Id
-                            OrdersModel.findOneAndUpdate({_id: data._id}, { OrderTrackingId: response.raw_body.order_tracking_id}, {new: false})
-                            .then( data => {
-                                res.json(response.raw_body)
-                            })
-                            .catch( err => {
-                                res.status(500).json(err);
-                            })
-                        })
-                    })
-                    .catch(function(err){
-                        res.status(500).json(err);
-                    })
-                })
-                
+        .send({
+            "id": data._id, //order id
+            "currency": "KES",
+            "amount":  received.min_price,
+            "description": hasFlowers ? "Payment for Flowers" : "Payment for Artworks",
+            "callback_url": process.env.CLIENT_URL +  "/confirm",
+            "cancellation_url": process.env.CLIENT_URL + "/cancel",
+            "redirect_mode": "",
+            "notification_id": process.env.IPN_ID,
+            "branch": "Ruple Art - Nairobi",
+            "billing_address": {
+                "email_address": user.email,
+                "phone_number": received.phoneNumber, // user.phoneNumber
+                "country_code": "KE",
+                "first_name": user.first_name,
+                "middle_name": "",
+                "last_name": user.second_name,
+                "line_1": "",
+                "line_2": "",
+                "city": "",
+                "state": "",
+                "postal_code": "",
+                "zip_code": ""
             }
         })
-        .catch(error => {
-            console.log(error);
-            // Handle errors here
-            res.status(500).json("Server Error. Try again");
-        });
-    })   
+        .end(response =>{
+            if (response.error) {
+                console.log(response.error);
+                return res.status(500).json("Payment request failed. Try again");
+            }
+
+            //Update Order with tracking Id
+            OrdersModel.findOneAndUpdate({_id: data._id}, { OrderTrackingId: response.raw_body.order_tracking_id}, {new: false})
+            .then( () => {
+                res.json(response.raw_body)
+            })
+            .catch( err => {
+                res.status(500).json(err);
+            })
+        })
+    } catch (error) {
+        console.log(error);
+        res.status(500).json("Server Error. Try again");
+    }
 })
 
 //Receives IPN notifcations
