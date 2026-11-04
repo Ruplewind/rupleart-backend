@@ -504,47 +504,84 @@ app.get('/get_all_products', (req, res)=>{
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// Small seeded PRNG (no dependency)
+function seededRandom(seedStr) {
+  let h = 1779033703 ^ seedStr.length;
+  for (let i = 0; i < seedStr.length; i++) {
+    h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  let a = h >>> 0;
+  return () => {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleWithSeed(arr, seed) {
+  const rand = seededRandom(seed);
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+// Cache shuffled id lists so page 2, 3, ... don't re-query everything
+const orderCache = new Map(); // key -> { ids, ts }
+const CACHE_TTL = 10 * 60 * 1000;
+const CACHE_MAX = 100;
+
+async function getShuffledIds(filter, seed, cacheKey) {
+  const hit = orderCache.get(cacheKey);
+  if (hit && Date.now() - hit.ts < CACHE_TTL) return hit.ids;
+
+  // Only fetch _id here: very light compared to full documents
+  const docs = await ProductsModel.find(filter).select("_id").sort({ _id: 1 }).lean();
+  const ids = shuffleWithSeed(docs.map((d) => String(d._id)), seed);
+
+  if (orderCache.size >= CACHE_MAX) orderCache.delete(orderCache.keys().next().value);
+  orderCache.set(cacheKey, { ids, ts: Date.now() });
+  return ids;
+}
+
 app.get("/get_approved_products", async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
+    const seed = String(req.query.seed || "default");
 
-    // Your original filter, unchanged
-    const filter = {
-      $and: [{ approvalStatus: 1 }, { availability: true }],
-    };
+    const filter = { $and: [{ approvalStatus: 1 }, { availability: true }] };
 
-    // Search by product name or category (case-insensitive, regex-safe)
     const search = (req.query.search || "").trim();
     if (search) {
       const rx = new RegExp(escapeRegex(search), "i");
-      filter.$and.push({
-        $or: [{ productName: rx }, { category: rx }, { type: rx }],
-      });
+      filter.$and.push({ $or: [{ productName: rx }, { category: rx }, { type: rx }] });
     }
 
-    // Optional category filter (matches how Products.jsx filtered on `type`)
     const category = (req.query.category || "").trim();
     if (category && category.toLowerCase() !== "all") {
       filter.$and.push({ type: new RegExp(escapeRegex(category), "i") });
     }
 
-    const [products, total] = await Promise.all([
-      ProductsModel.find(filter)
-        // Newest first. This replaces the old client-side res.reverse().
-        // The _id tie-breaker keeps page boundaries stable.
-        .sort({ _id: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean(),
-      ProductsModel.countDocuments(filter),
-    ]);
+    const cacheKey = `${seed}|${search}|${category}`;
+    const allIds = await getShuffledIds(filter, seed, cacheKey);
+
+    const pageIds = allIds.slice((page - 1) * limit, page * limit);
+    const docs = await ProductsModel.find({ _id: { $in: pageIds } }).lean();
+
+    // $in doesn't preserve order, so restore the shuffled order
+    const byId = new Map(docs.map((d) => [String(d._id), d]));
+    const products = pageIds.map((id) => byId.get(id)).filter(Boolean);
 
     res.status(200).json({
       products,
       page,
-      total,
-      hasMore: page * limit < total,
+      total: allIds.length,
+      hasMore: page * limit < allIds.length,
     });
   } catch (err) {
     console.error("get_approved_products error:", err);
