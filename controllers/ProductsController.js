@@ -563,11 +563,14 @@ app.get("/get_approved_products", async (req, res) => {
     }
 
     const category = (req.query.category || "").trim();
+    const exact = req.query.exact === "1";
     if (category && category.toLowerCase() !== "all") {
-      filter.$and.push({ type: new RegExp(escapeRegex(category), "i") });
+      filter.$and.push({
+        type: exact ? category : new RegExp(escapeRegex(category), "i"),
+      });
     }
 
-    const cacheKey = `${seed}|${search}|${category}`;
+    const cacheKey = `${seed}|${search}|${category}|${exact}`;
     const allIds = await getShuffledIds(filter, seed, cacheKey);
 
     const pageIds = allIds.slice((page - 1) * limit, page * limit);
