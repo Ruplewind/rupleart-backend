@@ -42,21 +42,55 @@ mongoose.connect(process.env.Mongo_URI);
 // static
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.get("/thumb/:file", async (req, res) => {
+let resizer = null;
+try {
+  const sharp = require("sharp");
+  resizer = async (src, dest) =>
+    sharp(src).resize({ width: 400 }).jpeg({ quality: 70 }).toFile(dest);
+} catch {
   try {
-    const file = path.basename(req.params.file); // blocks path traversal
-    const src = path.join(__dirname, "uploads", file);
-    const cacheDir = path.join(__dirname, "uploads", ".thumbs");
-    const dest = path.join(cacheDir, `${file}.webp`);
-
-    fs.mkdirSync(cacheDir, { recursive: true });
-    if (!fs.existsSync(dest)) {
-      await sharp(src).resize({ width: 400 }).webp({ quality: 70 }).toFile(dest);
-    }
-    res.set("Cache-Control", "public, max-age=31536000, immutable");
-    res.sendFile(dest);
+    const { Jimp } = require("jimp");
+    resizer = async (src, dest) => {
+      const img = await Jimp.read(src);
+      img.resize({ w: 400 });
+      const buf = await img.getBuffer("image/jpeg", { quality: 70 });
+      await fs.promises.writeFile(dest, buf);
+    };
   } catch {
-    res.status(404).end();
+    console.warn("No image library available, serving original images");
+  }
+}
+
+const UPLOADS_DIR = path.join(__dirname, "uploads"); // adjust to your real path
+const THUMBS_DIR = path.join(UPLOADS_DIR, ".thumbs");
+fs.mkdirSync(THUMBS_DIR, { recursive: true });
+
+const inFlight = new Map(); // avoid generating the same thumbnail twice at once
+
+app.get("/thumb/:file", async (req, res) => {
+  const file = path.basename(req.params.file); // blocks path traversal
+  const src = path.join(UPLOADS_DIR, file);
+  const dest = path.join(THUMBS_DIR, `${file}.jpg`);
+
+  try {
+    if (!fs.existsSync(src)) return res.status(404).end();
+
+    if (resizer && !fs.existsSync(dest)) {
+      if (!inFlight.has(dest)) {
+        inFlight.set(
+          dest,
+          resizer(src, dest).finally(() => inFlight.delete(dest))
+        );
+      }
+      await inFlight.get(dest);
+    }
+
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+    res.sendFile(resizer ? dest : src);
+  } catch (err) {
+    console.error("thumb error:", err.message);
+    // Fall back to the original so the image still shows
+    res.sendFile(src, (e) => e && res.status(404).end());
   }
 });
 
