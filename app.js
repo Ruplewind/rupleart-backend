@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
+const sharp = require("sharp");
+const fs = require("fs");
 
 const app = express();
 
@@ -39,6 +41,24 @@ mongoose.connect(process.env.Mongo_URI);
 
 // static
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.get("/thumb/:file", async (req, res) => {
+  try {
+    const file = path.basename(req.params.file); // blocks path traversal
+    const src = path.join(__dirname, "uploads", file);
+    const cacheDir = path.join(__dirname, "uploads", ".thumbs");
+    const dest = path.join(cacheDir, `${file}.webp`);
+
+    fs.mkdirSync(cacheDir, { recursive: true });
+    if (!fs.existsSync(dest)) {
+      await sharp(src).resize({ width: 400 }).webp({ quality: 70 }).toFile(dest);
+    }
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+    res.sendFile(dest);
+  } catch {
+    res.status(404).end();
+  }
+});
 
 // routes
 app.use('/', require('./controllers/UsersController'));
