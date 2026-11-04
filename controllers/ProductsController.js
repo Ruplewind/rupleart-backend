@@ -492,14 +492,64 @@ app.get('/get_all_products', (req, res)=>{
     })
 });
 
-app.get('/get_approved_products', (req, res)=>{
-    ProductsModel.find({$and: [{ approvalStatus: 1}, {availability: true}]})
-    .then((data)=>{
-        res.status(200).json(data);
-    })
-    .catch(err => {
-        res.status(400).json('error');
-    })
+// app.get('/get_approved_products', (req, res)=>{
+//     ProductsModel.find({$and: [{ approvalStatus: 1}, {availability: true}]})
+//     .then((data)=>{
+//         res.status(200).json(data);
+//     })
+//     .catch(err => {
+//         res.status(400).json('error');
+//     })
+// });
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+app.get("/get_approved_products", async (req, res) => {
+  try {
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
+
+    // Your original filter, unchanged
+    const filter = {
+      $and: [{ approvalStatus: 1 }, { availability: true }],
+    };
+
+    // Search by product name or category (case-insensitive, regex-safe)
+    const search = (req.query.search || "").trim();
+    if (search) {
+      const rx = new RegExp(escapeRegex(search), "i");
+      filter.$and.push({
+        $or: [{ productName: rx }, { category: rx }, { type: rx }],
+      });
+    }
+
+    // Optional category filter (matches how Products.jsx filtered on `type`)
+    const category = (req.query.category || "").trim();
+    if (category && category.toLowerCase() !== "all") {
+      filter.$and.push({ type: new RegExp(escapeRegex(category), "i") });
+    }
+
+    const [products, total] = await Promise.all([
+      ProductsModel.find(filter)
+        // Newest first. This replaces the old client-side res.reverse().
+        // The _id tie-breaker keeps page boundaries stable.
+        .sort({ _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      ProductsModel.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      products,
+      page,
+      total,
+      hasMore: page * limit < total,
+    });
+  } catch (err) {
+    console.error("get_approved_products error:", err);
+    res.status(400).json("error");
+  }
 });
 
 app.get('/get_all_approved_products', (req, res)=>{
