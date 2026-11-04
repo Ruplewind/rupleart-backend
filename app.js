@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
-const sharp = require("sharp");
 const fs = require("fs");
 
 const app = express();
