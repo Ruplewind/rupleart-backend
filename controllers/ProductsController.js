@@ -9,7 +9,7 @@ const ProductsModel = require('../models/ProductsModel');
 const verifyToken = require('../middleware/authMiddleware');
 const UsersModel = require('../models/UsersModel');
 const nodemailer  = require('nodemailer');
-const { requireAdPoster } = require('../middleware/permissions');
+const { requireAdPoster, requireProductAccess } = require('../middleware/permissions');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb)=>{
@@ -748,7 +748,7 @@ app.post('/add_product', requireAdPoster, upload.array('image'), verifyToken, (r
 //   }
 // });
 
-app.put('/edit_product/:id', requireAdPoster, upload.array('image'), verifyToken, async (req, res)=>{
+app.put('/edit_product/:id', requireAdPoster, requireProductAccess, upload.array('image'), verifyToken, async (req, res)=>{
     let id = req.params.id;
     let productName  = req.body.productName;
     let description = req.body.description;
@@ -802,7 +802,7 @@ app.put('/edit_product/:id', requireAdPoster, upload.array('image'), verifyToken
     }    
 })
 
-app.delete('/del_product/:id', urlEncoded, verifyToken, requireAdPoster, (req, res)=>{
+app.delete('/del_product/:id', urlEncoded, verifyToken, requireAdPoster, requireProductAccess, (req, res)=>{
     ProductsModel.findByIdAndRemove(req.params.id)
     .then(()=>{
         res.status(200).json('success');
