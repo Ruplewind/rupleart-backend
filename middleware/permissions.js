@@ -26,6 +26,7 @@ const requireAdmin = async (req, res, next) => {
 const requireAdPoster = async (req, res, next) => {
     try {
         const user = await loadUser(req);
+        console.log('requireAdPoster:', req.userId, user && user.accountType, user && user.canPostAds);
         if (!canPostAds(user)) {
             return res.status(403).json('Your account is not authorised to post ads');
         }
