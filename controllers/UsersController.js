@@ -177,12 +177,10 @@ app.post('/add_admin_user', urlEncoded, verifyToken, function(req, res){
 })
 
 //Get Admin Users
-app.get('/admin_users', verifyToken, function(req, res){
-    UsersModel.find({ accountType: 'admin'})
-    .then(data =>{
-        res.json(data);    
-    })
-    .catch(err => console.log(err))
+app.get('/admin_users', verifyToken, requireAdmin, function(req, res){
+    UsersModel.find({ accountType: 'admin' }).select('-password')
+    .then(data => res.json(data))
+    .catch(err => { console.log(err); res.status(500).json('Server error'); })
 })
 
 //Get Regular Users
