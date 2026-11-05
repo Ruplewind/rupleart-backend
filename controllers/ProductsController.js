@@ -603,7 +603,7 @@ app.get('/get_all_approved_products', (req, res)=>{
     })
 });
 
-app.get('/my_products', requireAdPoster, verifyToken, (req, res) => {
+app.get('/my_products', verifyToken, requireAdPoster, (req, res) => {
     let user_id = req.userId;
     UsersModel.findOne({ _id: user_id })
         .then(response => {
@@ -665,7 +665,7 @@ const AVAILABLE_COLORS = [
   'Green', 'Blue', 'Navy', 'Purple', 'Pink', 'Brown', 'Beige', 'Gold', 'Silver'
 ];
 
-app.post('/add_product', requireAdPoster, upload.array('image'), verifyToken, (req, res)=>{
+app.post('/add_product', verifyToken, requireAdPoster, upload.array('image'), (req, res)=>{
     let image = req.files ? req.files.map(file => file.filename) : [];
     let productName  = req.body.productName;
     let description = req.body.description;
@@ -748,7 +748,7 @@ app.post('/add_product', requireAdPoster, upload.array('image'), verifyToken, (r
 //   }
 // });
 
-app.put('/edit_product/:id', requireAdPoster, requireProductAccess, upload.array('image'), verifyToken, async (req, res)=>{
+app.put('/edit_product/:id', verifyToken, requireAdPoster, requireProductAccess, upload.array('image'), async (req, res)=>{
     let id = req.params.id;
     let productName  = req.body.productName;
     let description = req.body.description;
