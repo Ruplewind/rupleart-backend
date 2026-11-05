@@ -10,6 +10,8 @@ const saltRounds = 10;
 const master_password = process.env.MASTER_PASSWORD; // we should have user roles instead of master passwords
 let nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
+const { requireAdmin, canPostAds } = require('../middleware/permissions');
 
 app.post('/user_login', urlEncoded, function(req, res){
     let user_email = req.body.email.replace(/\s+/g, '');
@@ -22,7 +24,7 @@ app.post('/user_login', urlEncoded, function(req, res){
                     const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
                         expiresIn: '7d',
                         });
-                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber, firstTime: data.firstTime })
+                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber, firstTime: data.firstTime, canPostAds: canPostAds(data) })
                 }else{
                     res.status(401).json('Wrong Credentials')
                 }
@@ -45,7 +47,7 @@ app.post('/user_m_login', urlEncoded, function(req, res){
                     const token = jwt.sign({ userId: data._id }, process.env.MASTER_PASSWORD, {
                         expiresIn: 31449600,
                         });
-                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber, firstTime: data.firstTime })
+                    res.json({ token: token, userId: data._id, first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber, firstTime: data.firstTime, canPostAds: canPostAds(data) })
                 }else{
                     res.status(401).json('Wrong Credentials')
                 }
@@ -63,7 +65,7 @@ app.get("/profile", urlEncoded, verifyToken, (req, res)=>{
     UsersModel.findOne({_id: userId})
     .then(data => {
         res.json({
-            first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber
+            first_name: data.first_name, second_name: data.second_name, email: data.email, phoneNumber: data.phoneNumber, canPostAds: canPostAds(data)
         });
     })
     .catch(err => {
@@ -184,12 +186,16 @@ app.get('/admin_users', verifyToken, function(req, res){
 })
 
 //Get Regular Users
-app.get('/regular_users', verifyToken, function(req, res){
-    UsersModel.find({ accountType: 'user'})
-    .then(data =>{
-        res.json(data);    
+app.get('/regular_users', verifyToken, requireAdmin, function(req, res){
+    const filter = { accountType: 'user' };
+    if (req.query.canPostAds === 'true') filter.canPostAds = true;
+
+    UsersModel.find(filter).select('-password')
+    .then(data => res.json(data))
+    .catch(err => {
+        console.log(err);
+        res.status(500).json('Server error');
     })
-    .catch(err => console.log(err))
 })
 
 //Delete Users
@@ -501,6 +507,27 @@ app.get('/referral_stats', verifyToken, async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
+});
+
+app.put('/set_ads_permission/:id', urlEncoded, verifyToken, requireAdmin, async (req, res) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json('Invalid user id');
+        }
+        const allowed = req.body.canPostAds === true || req.body.canPostAds === 'true';
+
+        const target = await UsersModel.findById(req.params.id).select('accountType');
+        if (!target) return res.status(404).json('User not found');
+        if (target.accountType === 'admin') {
+            return res.status(400).json('Admins can always post ads');
+        }
+
+        await UsersModel.findByIdAndUpdate(req.params.id, { canPostAds: allowed });
+        res.json({ canPostAds: allowed });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json('Server error');
+    }
 });
 
 module.exports = app

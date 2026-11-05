@@ -9,6 +9,7 @@ let userSchema = new mongoose.Schema({
     accountType: String,
     firstTime: Boolean,
     referralCode: String,
+    canPostAds: { type: Boolean, default: false },
 })
 
 

@@ -9,6 +9,7 @@ const ProductsModel = require('../models/ProductsModel');
 const verifyToken = require('../middleware/authMiddleware');
 const UsersModel = require('../models/UsersModel');
 const nodemailer  = require('nodemailer');
+const { requireAdPoster } = require('../middleware/permissions');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb)=>{
@@ -602,7 +603,7 @@ app.get('/get_all_approved_products', (req, res)=>{
     })
 });
 
-app.get('/my_products', verifyToken, (req, res) => {
+app.get('/my_products', requireAdPoster, verifyToken, (req, res) => {
     let user_id = req.userId;
     UsersModel.findOne({ _id: user_id })
         .then(response => {
@@ -664,7 +665,7 @@ const AVAILABLE_COLORS = [
   'Green', 'Blue', 'Navy', 'Purple', 'Pink', 'Brown', 'Beige', 'Gold', 'Silver'
 ];
 
-app.post('/add_product', upload.array('image'), verifyToken, (req, res)=>{
+app.post('/add_product', requireAdPoster, upload.array('image'), verifyToken, (req, res)=>{
     let image = req.files ? req.files.map(file => file.filename) : [];
     let productName  = req.body.productName;
     let description = req.body.description;
@@ -747,7 +748,7 @@ app.post('/add_product', upload.array('image'), verifyToken, (req, res)=>{
 //   }
 // });
 
-app.put('/edit_product/:id', upload.array('image'), verifyToken, async (req, res)=>{
+app.put('/edit_product/:id', requireAdPoster, upload.array('image'), verifyToken, async (req, res)=>{
     let id = req.params.id;
     let productName  = req.body.productName;
     let description = req.body.description;
@@ -801,7 +802,7 @@ app.put('/edit_product/:id', upload.array('image'), verifyToken, async (req, res
     }    
 })
 
-app.delete('/del_product/:id', urlEncoded, verifyToken, (req, res)=>{
+app.delete('/del_product/:id', urlEncoded, verifyToken, requireAdPoster, (req, res)=>{
     ProductsModel.findByIdAndRemove(req.params.id)
     .then(()=>{
         res.status(200).json('success');
