@@ -567,7 +567,7 @@ app.get("/get_approved_products", async (req, res) => {
     const exact = req.query.exact === "1";
     if (category && category.toLowerCase() !== "all") {
       filter.$and.push({
-        type: exact ? category : new RegExp(escapeRegex(category), "i"),
+        type: new RegExp(exact ? `^${escapeRegex(category)}$` : escapeRegex(category), "i"),
       });
     }
 
