@@ -12,6 +12,7 @@ const ProductsModel = require('../models/ProductsModel');
 const urlEncoded = bodyParser.urlencoded({extended: false});
 
 const toBool = (v) => v === true || v === 'true';
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 app.post('/add_category', urlEncoded, verifyToken, (req, res)=>{
     let category = req.body.category.trim();
@@ -64,7 +65,7 @@ app.put('/edit_category/:id', urlEncoded, verifyToken, (req, res)=>{
     CategoriesModel.findByIdAndUpdate(req.params.id, update, { new: false})
     .then(data => {
         let previousCategory = data.category;
-        ProductsModel.updateMany({ type: previousCategory}, {$set : { type: newName }}, {multi: true})
+        ProductsModel.updateMany({ type: new RegExp(`^${escapeRegex(previousCategory)}$`, 'i') }, {$set : { type: newName }}, {multi: true})
         .then(()=>{
             res.json("Success");
         })

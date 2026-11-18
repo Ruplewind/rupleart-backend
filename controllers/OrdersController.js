@@ -166,14 +166,22 @@ app.post('/Checkout', urlEncoded, accessToken, verifyToken, async function(req, 
         const TotalPrice = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
 
         // Which of these products belong to a category that needs recipient details?
-        const types = [...new Set(lines.map(l => l.product.type))];
-        const flowerCats = await CategoriesModel.find({
-            category: { $in: types },
-            requiresRecipientDetails: true
-        });
-        const flowerTypes = new Set(flowerCats.map(c => c.category));
+        // const types = [...new Set(lines.map(l => l.product.type))];
+        // const flowerCats = await CategoriesModel.find({
+        //     category: { $in: types },
+        //     requiresRecipientDetails: true
+        // });
+        // const flowerTypes = new Set(flowerCats.map(c => c.category));
 
-        const flowerLines = lines.filter(l => flowerTypes.has(l.product.type));
+        // const flowerLines = lines.filter(l => flowerTypes.has(l.product.type));
+        // const hasFlowers = flowerLines.length > 0;
+
+        const norm = (s) => String(s || '').trim().toLowerCase();
+
+        const flowerCats = await CategoriesModel.find({ requiresRecipientDetails: true }).select('category');
+        const flowerTypes = new Set(flowerCats.map(c => norm(c.category)));
+
+        const flowerLines = lines.filter(l => flowerTypes.has(norm(l.product.type)));
         const hasFlowers = flowerLines.length > 0;
 
         if (hasFlowers) {
